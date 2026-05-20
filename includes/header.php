@@ -1,9 +1,11 @@
 <?php
+$siteName = config_value('site_name', 'Le Gentleman Pub');
+$siteTagline = config_value('site_tagline', 'Pub irlandais à Saint-Michel, Paris');
 if (!isset($page_title)) {
-    $page_title = 'Le Gentleman Pub';
+  $page_title = $siteName;
 }
 if (!isset($meta_description)) {
-    $meta_description = 'Le Gentleman Pub - Pub irlandais à Saint-Michel, Paris. Ambiance sport, bière et musique.';
+  $meta_description = $siteTagline;
 }
 ?>
 <!doctype html>
@@ -43,14 +45,14 @@ if (!isset($meta_description)) {
     <a href="/" class="flex items-center gap-3 text-white">
       <div class="w-10 h-10 rounded-full bg-gradient-to-br from-yellow-400 to-amber-600 flex items-center justify-center text-black font-bold">G</div>
       <div>
-        <div class="text-lg font-display">Le Gentleman Pub</div>
-        <div class="text-sm text-gray-300">Saint-Michel, Paris</div>
+        <div class="text-lg font-display"><?php echo e($siteName); ?></div>
+        <div class="text-sm text-gray-300"><?php echo e($siteTagline); ?></div>
       </div>
     </a>
     <nav class="hidden md:flex gap-6 items-center text-sm">
-      <a href="#matchs" class="hover:text-amber-300">Matchs</a>
-      <a href="#carte" class="hover:text-amber-300">Carte</a>
-      <a href="#contact" class="hover:text-amber-300">Infos</a>
+      <a href="#matchs" class="hover:text-amber-300"><?php echo e(config_value('nav_matchs_label', 'Matchs')); ?></a>
+      <a href="#carte" class="hover:text-amber-300"><?php echo e(config_value('nav_carte_label', 'Carte')); ?></a>
+      <a href="#contact" class="hover:text-amber-300"><?php echo e(config_value('nav_infos_label', 'Infos')); ?></a>
     </nav>
     <div class="md:hidden">
       <button id="nav-toggle" aria-label="Menu" class="text-gray-200">☰</button>

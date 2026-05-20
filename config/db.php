@@ -25,6 +25,23 @@ try {
     exit;
 }
 
+// Charge la configuration globale du site en tableau accessible partout
+$config = [];
+try {
+    $stmt = $pdo->query('SELECT `cle`, `valeur` FROM site_config');
+    foreach ($stmt->fetchAll() as $row) {
+        $config[(string)$row['cle']] = (string)$row['valeur'];
+    }
+} catch (Throwable $e) {
+    error_log('Config load error: ' . $e->getMessage());
+}
+
+function config_value(string $key, string $default = ''): string
+{
+    global $config;
+    return isset($config[$key]) && $config[$key] !== '' ? (string)$config[$key] : $default;
+}
+
 // Petit helper global pour échapper en sortie
 function e(string $s): string
 {
