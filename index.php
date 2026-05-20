@@ -47,7 +47,7 @@ $order = ['Bières','Cocktails','Softs','Food','Planches'];
       <?php if (!empty($nextMatchs)): ?>
         <?php foreach ($nextMatchs as $m):
           $d = new DateTimeImmutable($m['date_match'], new DateTimeZone('Europe/Paris')); ?>
-          <a href="/matchs/dates/<?php echo e($m['slug']); ?>" class="block bg-[#121212] p-4 rounded-lg hover:shadow-lg">
+          <a href="/matchs/<?php echo e($m['slug']); ?>" class="block bg-[#121212] p-4 rounded-lg hover:shadow-lg">
             <div class="flex items-center justify-between">
               <div>
                 <div class="text-lg font-semibold text-gray-100"><?php echo e($m['equipe_1']); ?> <span class="text-gray-400">vs</span> <?php echo e($m['equipe_2']); ?></div>

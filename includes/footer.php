@@ -51,7 +51,9 @@ $openStatus = is_open_now() ? 'OUVERT' : 'FERMÉ';
           </ul>
         </div>
       </div>
-      <div class="border-t border-gray-800 py-4 text-center text-sm text-gray-400">© <?php echo date('Y'); ?> Le Gentleman Pub — Tous droits réservés</div>
+      <div class="border-t border-gray-800 py-4 text-center text-sm text-gray-400">
+        © <?php echo date('Y'); ?> Le Gentleman Pub — Tous droits réservés · <a href="/le-comptoir" class="text-amber-300 hover:text-amber-200">Espace Privé</a>
+      </div>
     </footer>
 
     <script>

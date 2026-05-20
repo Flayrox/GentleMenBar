@@ -15,7 +15,8 @@ require_once __DIR__ . '/config/db.php';
 
 // Identifiants simples et robustes pour Hostinger
 $ADMIN_USERNAME = 'admin';
-$ADMIN_PASSWORD_HASH = '258707d0b6c51a49e410c46ffcc6a4bf1cf50f838b4afad141482c1678f2b1cb';
+// Hash généré avec password_hash('Gentleman2026!', PASSWORD_BCRYPT)
+$ADMIN_PASSWORD_HASH = '$2b$10$O3EqPTpkCa0aiiq/429CrOiS812Zq88cP2OFrccx0pvcn0tEXw.LO';
 
 if (!isset($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -27,7 +28,7 @@ if (!isset($_SESSION['flash'])) {
 
 function redirect_admin(string $tab = 'matchs'): void
 {
-    header('Location: /admin.php?tab=' . urlencode($tab));
+  header('Location: /le-comptoir?tab=' . urlencode($tab));
     exit;
 }
 
@@ -64,10 +65,36 @@ function slugify(string $value): string
     return $value !== '' ? $value : 'match';
 }
 
-function generate_unique_match_slug(PDO $pdo, string $equipe1, string $equipe2, string $dateMatch): string
+  function apply_slug_synonyms(string $value): string
+  {
+    $normalized = trim($value);
+    $synonyms = [
+      '/\b(paris\s*saint[\s-]*germain|paris\s+sg|paris)\b/i' => 'psg',
+      '/\b(olympique\s+de\s+marseille|marseille)\b/i' => 'om',
+    ];
+
+    foreach ($synonyms as $pattern => $replacement) {
+      $normalized = preg_replace($pattern, $replacement, $normalized) ?? $normalized;
+    }
+
+    return $normalized;
+  }
+
+  function sanitize_custom_slug(string $slug): string
+  {
+    return slugify($slug);
+  }
+
+  function generate_unique_match_slug(PDO $pdo, string $equipe1, string $equipe2, string $dateMatch, string $customSlug = ''): string
 {
+    if ($customSlug !== '') {
+      return sanitize_custom_slug($customSlug);
+    }
+
     $year = (new DateTimeImmutable($dateMatch, new DateTimeZone('Europe/Paris')))->format('Y');
-    $base = slugify($equipe1 . ' ' . $equipe2 . ' ' . $year);
+    $team1 = apply_slug_synonyms($equipe1);
+    $team2 = apply_slug_synonyms($equipe2);
+    $base = slugify($team1 . ' ' . $team2 . ' ' . $year);
     $slug = $base;
     $index = 2;
 
@@ -107,7 +134,7 @@ if (isset($_POST['action']) && $_POST['action'] === 'logout') {
     session_destroy();
     session_start();
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-    header('Location: /admin.php');
+  header('Location: /le-comptoir');
     exit;
 }
 
@@ -117,7 +144,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'login
     $username = trim((string)($_POST['username'] ?? ''));
     $password = (string)($_POST['password'] ?? '');
 
-    if ($username === $ADMIN_USERNAME && hash_equals($ADMIN_PASSWORD_HASH, hash('sha256', $password))) {
+    if ($username === $ADMIN_USERNAME && password_verify($password, $ADMIN_PASSWORD_HASH)) {
         session_regenerate_id(true);
         $_SESSION['admin_authenticated'] = true;
         $_SESSION['admin_username'] = $username;
@@ -140,13 +167,28 @@ if (is_admin_authenticated() && $_SERVER['REQUEST_METHOD'] === 'POST') {
             $equipe2 = trim((string)($_POST['equipe_2'] ?? ''));
             $competition = trim((string)($_POST['competition'] ?? ''));
             $dateInput = trim((string)($_POST['date_match'] ?? ''));
+        $customSlug = trim((string)($_POST['slug_seo'] ?? ''));
             $dateMatch = normalize_datetime_input($dateInput);
 
             if ($equipe1 === '' || $equipe2 === '' || !$dateMatch) {
                 throw new RuntimeException('Veuillez remplir les champs obligatoires avec une date valide.');
             }
 
-            $slug = generate_unique_match_slug($pdo, $equipe1, $equipe2, $dateMatch);
+        $slug = generate_unique_match_slug($pdo, $equipe1, $equipe2, $dateMatch, $customSlug);
+        $slugBase = $slug;
+        $index = 2;
+
+        while (true) {
+          $stmt = $pdo->prepare('SELECT COUNT(*) FROM matchs WHERE slug = :slug');
+          $stmt->execute([':slug' => $slug]);
+          if ((int)$stmt->fetchColumn() === 0) {
+            break;
+          }
+
+          $slug = $slugBase . '-' . $index;
+          $index++;
+        }
+
             $stmt = $pdo->prepare('INSERT INTO matchs (slug, equipe_1, equipe_2, competition, date_match, is_active) VALUES (:slug, :equipe_1, :equipe_2, :competition, :date_match, 1)');
             $stmt->execute([
                 ':slug' => $slug,
@@ -367,6 +409,11 @@ $categories = ['Bières', 'Cocktails', 'Softs', 'Food', 'Planches'];
             <div>
               <label class="mb-2 block text-sm text-gray-300">Compétition</label>
               <input name="competition" class="w-full rounded-lg bg-[#121212] border border-white/10 px-4 py-3 text-white outline-none focus:border-amber-400">
+            </div>
+            <div>
+              <label class="mb-2 block text-sm text-gray-300">Slug SEO personnalisé</label>
+              <input name="slug_seo" placeholder="ex: psg-om-2026" class="w-full rounded-lg bg-[#121212] border border-white/10 px-4 py-3 text-white outline-none focus:border-amber-400">
+              <p class="mt-2 text-xs text-gray-500">Optionnel. Sinon, le slug est généré automatiquement avec les synonymes PSG / OM.</p>
             </div>
             <div>
               <label class="mb-2 block text-sm text-gray-300">Date / Heure</label>

@@ -51,7 +51,6 @@ if (!isset($meta_description)) {
       <a href="#matchs" class="hover:text-amber-300">Matchs</a>
       <a href="#carte" class="hover:text-amber-300">Carte</a>
       <a href="#contact" class="hover:text-amber-300">Infos</a>
-      <a href="/admin" class="bg-amber-400 text-black px-3 py-2 rounded-md font-semibold">Admin</a>
     </nav>
     <div class="md:hidden">
       <button id="nav-toggle" aria-label="Menu" class="text-gray-200">☰</button>
