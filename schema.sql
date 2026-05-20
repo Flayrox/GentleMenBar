@@ -33,18 +33,22 @@ CREATE TABLE IF NOT EXISTS `carte_produits` (
   KEY `categorie_idx` (`categorie`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Configuration initiale du site
+-- Nettoyage des anciennes données de démarrage
+DELETE FROM `site_config`;
+DELETE FROM `carte_produits`;
+
+-- Insertion de la configuration officielle du Gentleman Pub
 INSERT INTO `site_config` (`cle`, `valeur`) VALUES
 ('site_name', 'Le Gentleman Pub'),
-('site_tagline', 'Pub irlandais à Saint-Michel, Paris'),
+('site_tagline', 'Pub Irlandais & Sports Bar à Paris'),
 ('hero_title', 'Le Gentleman Pub'),
-('hero_subtitle', 'Ambiance irlandaise, sports en direct, karaoké et grandes soirées à Saint-Michel.'),
-('hero_cta_primary', 'Voir les prochains matchs'),
+('hero_subtitle', 'Pintes fraîches, sports en direct et soirées karaoké au cœur de Saint-Germain.'),
+('hero_cta_primary', 'Voir les matchs ce soir'),
 ('hero_cta_secondary', 'Découvrir la carte'),
 ('hero_bg_image', '/assets/uploads/hero-bg.jpg'),
-('bar_adresse', '3 Rue imaginaire, 75005 Paris'),
-('bar_telephone', '01 23 45 67 89'),
-('insta_link', 'https://instagram.com/'),
+('bar_adresse', '14 Rue Saint Germain, 75006 Paris'),
+('bar_telephone', '01 71 71 71 71'),
+('insta_link', 'https://www.instagram.com/legentlemanpub/'),
 ('facebook_link', 'https://facebook.com/'),
 ('horaires_semaine', '11:00 - 02:00'),
 ('horaires_weekend', '11:00 - 05:00'),
@@ -52,22 +56,31 @@ INSERT INTO `site_config` (`cle`, `valeur`) VALUES
 ('nav_matchs_label', 'Matchs'),
 ('nav_carte_label', 'Carte'),
 ('nav_infos_label', 'Infos'),
-('section_matchs_title', 'Prochains matchs'),
-('section_carte_title', 'La carte'),
-('no_matchs_message', 'Aucun match prévu pour le moment'),
+('section_matchs_title', 'Les Événements & Matchs'),
+('section_carte_title', 'Boissons & Cocktails'),
+('no_matchs_message', 'Aucun match prévu aujourd’hui. Rejoignez-nous pour l’Happy Hour !'),
 ('footer_copy_text', 'Tous droits réservés'),
 ('footer_privacy_label', 'Espace Privé'),
 ('footer_hours_title', 'Horaires'),
-('footer_socials_title', 'Réseaux'),
-('footer_contact_title', 'Contact'),
+('footer_socials_title', 'Suivez-nous'),
 ('footer_address_title', 'Adresse'),
 ('footer_phone_label', 'Téléphone');
 
--- Exemples d'insertion (optionnel)
-INSERT INTO `matchs` (`slug`,`equipe_1`,`equipe_2`,`competition`,`date_match`,`is_active`) VALUES
-('psg-om','PSG','OM','Ligue 1','2026-10-01 21:00:00',1);
-
-INSERT INTO `carte_produits` (`categorie`,`nom`,`description`,`prix_normal`,`prix_happy_hour`) VALUES
-('Bières','Guinness pint','Guinness tirée au bar','6.50','4.50'),
-('Cocktails','Irish Mule','Whisky, ginger beer, citron','10.00','8.00'),
-('Planches','Planche de charcuterie','Sélection locale','14.00','12.00');
+-- Insertion de la vraie sélection de boissons
+INSERT INTO `carte_produits` (`categorie`, `nom`, `description`, `prix_normal`, `prix_happy_hour`) VALUES
+('Bières', 'Gentleman Lager', 'La bière de la maison, légère et rafraîchissante', 8.00, 4.00),
+('Bières', 'Guinness', 'L’incontournable stout irlandaise noire', 9.00, 6.00),
+('Bières', 'Leffe Blonde', 'Bière d’abbaye belge de caractère', 9.00, 6.00),
+('Bières', 'Tripel Karmeliet', 'Bière blonde belge triple aux trois céréales', 9.00, 6.00),
+('Bières', 'Goose Midway IPA', 'Une India Pale Ale aux notes d’agrumes légères', 9.00, 6.00),
+('Cocktails', 'Sex On The Beach', 'Vodka, crème de pêche, jus d’orange, jus de cranberry', 8.00, 6.00),
+('Cocktails', 'Mojito', 'Rhum, sucre, citron vert, menthe fraîche, soda', 8.00, 6.00),
+('Cocktails', 'Dark & Stormy', 'Rhum ambré, citron vert, ginger beer', 8.00, 6.00),
+('Cocktails', 'Moscow Mule', 'Vodka, citron vert, ginger beer', 8.00, 6.00),
+('Cocktails', 'Whiskey Sour', 'Jack Daniel’s, sour mix, blanc d’œuf, bitter', 8.00, 7.00),
+('Cocktails', 'Espresso Martini', 'Vodka, Kahlúa, café expresso', 8.00, 7.00),
+('Cocktails', 'Negroni', 'Campari, gin, vermouth rouge', 8.00, 7.00),
+('Softs', 'Virgin Mojito', 'Menthe fraîche, sucre, soda, citron vert', 6.00, NULL),
+('Softs', 'Coca-Cola / Zero', '33cl', 4.50, NULL),
+('Food', 'B-52', 'Kahlúa, Bailey’s, triple sec', 5.50, NULL),
+('Food', 'Baby Guinness', 'Kahlúa, Bailey’s (Le shot visuel)', 5.50, NULL);
