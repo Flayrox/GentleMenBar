@@ -4,7 +4,6 @@ function parse_schedule_window(string $schedule): array
     if (!preg_match('/(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})/', $schedule, $matches)) {
         return ['open' => '11:00', 'close' => '02:00'];
     }
-
     return ['open' => $matches[1], 'close' => $matches[2]];
 }
 
@@ -49,6 +48,7 @@ function is_open_now(): bool
 }
 
 $openStatus = is_open_now() ? 'OUVERT' : 'FERMÉ';
+$openStatusClass = is_open_now() ? 'status-live' : 'status-closed';
 $siteName = config_value('site_name', 'Le Gentleman Pub');
 $address = config_value('bar_adresse');
 $telephone = config_value('bar_telephone');
@@ -56,43 +56,61 @@ $instagram = config_value('insta_link');
 $facebook = config_value('facebook_link');
 $copyText = config_value('footer_copy_text', 'Tous droits réservés');
 $privacyLabel = config_value('footer_privacy_label', 'Espace Privé');
-
 ?>
-    </main>
 
-    <footer class="bg-[#121212] text-gray-200 mt-12">
-      <div class="max-w-6xl mx-auto px-6 py-10 grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div>
-          <h3 class="text-2xl font-display text-amber-400"><?php echo e($siteName); ?></h3>
-          <p class="mt-2"><?php echo e(config_value('site_tagline', 'Pub irlandais à Saint-Michel, Paris')); ?></p>
-          <p class="mt-3"><?php echo e(config_value('footer_address_title', 'Adresse')); ?>: <span class="text-gray-300"><?php echo e($address); ?></span></p>
-          <p class="mt-2"><?php echo e(config_value('footer_phone_label', 'Téléphone')); ?>: <a href="tel:<?php echo e(preg_replace('/[^0-9+]/', '', $telephone)); ?>" class="text-amber-300"><?php echo e($telephone); ?></a></p>
-        </div>
-        <div>
-          <h4 class="font-semibold"><?php echo e(config_value('footer_hours_title', 'Horaires')); ?></h4>
-          <p class="mt-2">Semaine: <?php echo e(config_value('horaires_semaine')); ?><br>Weekend: <?php echo e(config_value('horaires_weekend')); ?><br>Dimanche: <?php echo e(config_value('horaires_dimanche')); ?></p>
-          <p class="mt-3">Statut actuel: <span class="font-bold text-amber-300"><?php echo e($openStatus); ?></span></p>
-        </div>
-        <div>
-          <h4 class="font-semibold"><?php echo e(config_value('footer_socials_title', 'Réseaux')); ?></h4>
-          <ul class="mt-2 space-y-2">
-            <li><a href="<?php echo e($facebook); ?>" class="text-amber-300" target="_blank" rel="noopener">Facebook</a></li>
-            <li><a href="<?php echo e($instagram); ?>" class="text-amber-300" target="_blank" rel="noopener">Instagram</a></li>
-            <li><a href="#" class="text-amber-300">X (Twitter)</a></li>
-          </ul>
-        </div>
-      </div>
-      <div class="border-t border-gray-800 py-4 text-center text-sm text-gray-400">
-        © <?php echo date('Y'); ?> <?php echo e($siteName); ?> — <?php echo e($copyText); ?> · <a href="/le-comptoir" class="text-amber-300 hover:text-amber-200"><?php echo e($privacyLabel); ?></a>
-      </div>
-    </footer>
+</main>
 
-    <script>
-      // petit script pour accentuer les CTA, ex : mise en avant progressive
-      document.querySelectorAll('a').forEach(a=>{
-        a.addEventListener('mouseover', ()=> a.classList.add('scale-105'));
-        a.addEventListener('mouseout', ()=> a.classList.remove('scale-105'));
-      });
-    </script>
+<!-- BottomNavBar Mobile -->
+<nav class="md:hidden fixed bottom-0 w-full z-50 bg-background/80 backdrop-blur-2xl border-t border-primary-container/10 flex justify-around items-center h-24 pb-safe">
+    <a href="/" class="flex flex-col items-center justify-center text-on-surface-variant/60 hover:text-primary-container w-16 active:scale-90 transition-transform">
+        <span class="material-symbols-outlined">home</span>
+        <span class="font-label-caps text-[10px] tracking-widest uppercase">Accueil</span>
+    </a>
+    <a href="/#matchs" class="flex flex-col items-center justify-center text-on-surface-variant/60 hover:text-primary-container w-16 active:scale-90 transition-transform">
+        <span class="material-symbols-outlined">sports_score</span>
+        <span class="font-label-caps text-[10px] tracking-widest uppercase">Matchs</span>
+    </a>
+    <a href="/#carte" class="flex flex-col items-center justify-center text-on-surface-variant/60 hover:text-primary-container w-16 active:scale-90 transition-transform">
+        <span class="material-symbols-outlined">menu_book</span>
+        <span class="font-label-caps text-[10px] tracking-widest uppercase">Carte</span>
+    </a>
+    <a href="/#contact" class="flex flex-col items-center justify-center text-on-surface-variant/60 hover:text-primary-container w-16 active:scale-90 transition-transform">
+        <span class="material-symbols-outlined">info</span>
+        <span class="font-label-caps text-[10px] tracking-widest uppercase">Infos</span>
+    </a>
+</nav>
+
+<!-- Desktop Footer -->
+<footer class="hidden md:block bg-surface-container/40 border-t border-outline-variant/20 mt-12">
+    <div class="max-w-6xl mx-auto px-4 py-8 grid grid-cols-3 gap-8">
+        <div>
+            <h3 class="font-display-lg text-2xl text-primary mb-4"><?php echo e($siteName); ?></h3>
+            <p class="text-on-surface-variant text-sm"><?php echo e(config_value('site_tagline')); ?></p>
+        </div>
+        <div>
+            <h4 class="font-headline-md text-lg text-primary mb-4">Horaires</h4>
+            <ul class="text-on-surface-variant text-sm space-y-1">
+                <li>Semaine: <?php echo e(config_value('horaires_semaine')); ?></li>
+                <li>Weekend: <?php echo e(config_value('horaires_weekend')); ?></li>
+                <li>Dimanche: <?php echo e(config_value('horaires_dimanche')); ?></li>
+                <li class="mt-3 font-semibold text-<?php echo $openStatusClass; ?>"><?php echo e($openStatus); ?></li>
+            </ul>
+        </div>
+        <div>
+            <h4 class="font-headline-md text-lg text-primary mb-4">Contact</h4>
+            <p class="text-on-surface-variant text-sm"><?php echo e($address); ?></p>
+            <p class="text-on-surface-variant text-sm"><a href="tel:<?php echo preg_replace('/[^0-9+]/', '', $telephone); ?>" class="text-primary hover:text-primary-fixed"><?php echo e($telephone); ?></a></p>
+            <div class="flex gap-3 mt-4 text-sm">
+                <a href="<?php echo e($facebook); ?>" target="_blank" rel="noopener" class="text-primary hover:text-primary-fixed">Facebook</a>
+                <a href="<?php echo e($instagram); ?>" target="_blank" rel="noopener" class="text-primary hover:text-primary-fixed">Instagram</a>
+            </div>
+        </div>
+    </div>
+    <div class="border-t border-outline-variant/20 text-center text-on-surface-variant text-sm py-4">
+        © <?php echo date('Y'); ?> <?php echo e($siteName); ?> — <?php echo e($copyText); ?> · <a href="/le-comptoir" class="text-primary hover:text-primary-fixed"><?php echo e($privacyLabel); ?></a>
+    </div>
+</footer>
+
 </body>
 </html>
+

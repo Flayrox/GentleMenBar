@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Le Gentleman Pub - Menu</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&amp;family=Inter:wght@400;600&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-secondary": "#1c3625",
+                        "primary": "#f2ca50",
+                        "primary-fixed": "#ffe088",
+                        "inverse-primary": "#735c00",
+                        "secondary": "#b0ceb7",
+                        "on-tertiary-fixed-variant": "#474646",
+                        "surface-tint": "#e9c349",
+                        "secondary-fixed": "#ccead2",
+                        "tertiary-container": "#b5b2b2",
+                        "tertiary-fixed-dim": "#c9c6c5",
+                        "on-surface": "#e1e2e4",
+                        "inverse-on-surface": "#2e3132",
+                        "surface": "#121212",
+                        "surface-container": "#1d2022",
+                        "text-muted": "#9CA3AF",
+                        "on-tertiary-fixed": "#1c1b1b",
+                        "tertiary-fixed": "#e5e2e1",
+                        "surface-container-high": "#282a2c",
+                        "surface-dim": "#071a12",
+                        "on-error-container": "#ffdad6",
+                        "on-surface-variant": "#d0c5af",
+                        "inverse-surface": "#e1e2e4",
+                        "on-secondary-fixed": "#062012",
+                        "on-error": "#690005",
+                        "status-closed": "#EF4444",
+                        "on-primary-container": "#554300",
+                        "primary-container": "#d4af37",
+                        "secondary-fixed-dim": "#b0ceb7",
+                        "status-live": "#22C55E",
+                        "on-background": "#e1e2e4",
+                        "secondary-container": "#354f3d",
+                        "surface-variant": "#323537",
+                        "error-container": "#93000a",
+                        "on-primary": "#3c2f00",
+                        "surface-container-lowest": "#0c0f10",
+                        "error": "#ffb4ab",
+                        "on-primary-fixed": "#241a00",
+                        "surface-container-low": "#191c1e",
+                        "on-secondary-container": "#a2c0a9",
+                        "outline": "#99907c",
+                        "on-tertiary": "#313030",
+                        "surface-bright": "#37393b",
+                        "on-primary-fixed-variant": "#574500",
+                        "on-tertiary-container": "#454545",
+                        "tertiary": "#d0cecd",
+                        "on-secondary-fixed-variant": "#324c3b",
+                        "outline-variant": "#4d4635",
+                        "background": "#111415",
+                        "primary-fixed-dim": "#e9c349",
+                        "surface-container-highest": "#323537"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "gutter": "16px",
+                        "md": "16px",
+                        "section-desktop": "80px",
+                        "margin-safe": "16px",
+                        "xl": "32px",
+                        "section-mobile": "48px",
+                        "sm": "8px",
+                        "xs": "4px",
+                        "lg": "24px",
+                        "base": "4px"
+                    },
+                    "fontFamily": {
+                        "display-lg": ["Playfair Display"],
+                        "body-muted": ["Inter"],
+                        "headline-md": ["Playfair Display"],
+                        "display-lg-mobile": ["Playfair Display"],
+                        "label-caps": ["Inter"],
+                        "body-base": ["Inter"],
+                        "title-sm": ["Inter"]
+                    },
+                    "fontSize": {
+                        "display-lg": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+                        "body-muted": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "headline-md": ["32px", { "lineHeight": "40px", "fontWeight": "700" }],
+                        "display-lg-mobile": ["36px", { "lineHeight": "44px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+                        "label-caps": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "body-base": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "title-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .art-deco-line {
+            flex-grow: 1;
+            height: 1px;
+            background: linear-gradient(90deg, rgba(212,175,55,0) 0%, rgba(212,175,55,0.4) 50%, rgba(212,175,55,0) 100%);
+            margin: 0 16px;
+            margin-top: 14px;
+        }
+        
+        .art-deco-divider {
+            width: 100%;
+            height: 1px;
+            background: linear-gradient(90deg, rgba(212,175,55,0) 0%, rgba(212,175,55,0.6) 50%, rgba(212,175,55,0) 100%);
+            margin: 32px 0;
+            position: relative;
+        }
+        
+        .art-deco-divider::before {
+            content: '❖';
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            color: #d4af37;
+            font-size: 14px;
+            padding: 0 12px;
+            background-color: transparent; /* relies on background behind it */
+        }
+
+        /* Smooth scrolling for anchor links */
+        html { scroll-behavior: smooth; }
+        
+        body {
+          min-height: max(884px, 100dvh);
+        }
+    </style>
+</head>
+<body class="text-on-background min-h-screen font-body-base antialiased selection:bg-primary-container selection:text-on-primary-container relative">
+<!-- Environment Background Texture -->
+<div class="fixed inset-0 z-0 pointer-events-none">
+<img alt="Pub Interior" class="w-full h-full object-cover opacity-40" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCTrdT43ZPDPGZdj-dM4Uzqz6rvsh0BIfa4oaoWXqz8AfhFaZum1UNHyAiAVEMdotCf2XbQJ1YQ8fiGiu_o-PtRm_sMVgtcesSxc_3Un8Pvkph3YU-s2OHujPWgjOXtM1sCejA5FTz5lEb83RdPN4EiuUt2JLBmIc8am6Q7u-3N9GdMOETgaJYEBsqNmwopYqVUjEde3ZQ4Gwu8zhRkhgxzoTt4gHBF146Mktrs9J7z-qyWSJXFCGlijW8RdEtre_ZU_2YVhnSfeWU"/>
+<div class="absolute inset-0 bg-gradient-to-b from-background/90 via-background/80 to-background/95 backdrop-blur-[2px]"></div>
+</div>
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 backdrop-blur-xl border-b border-outline-variant/20 bg-surface-container/80 dark:bg-surface-container/80 flex justify-between items-center px-gutter h-[72px]">
+<button class="text-on-surface-variant hover:text-primary-fixed transition-colors active:scale-95 duration-200 p-2 rounded-full hover:bg-surface-variant/30 flex items-center justify-center">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">menu</span>
+</button>
+<h1 class="font-display-lg-mobile text-display-lg-mobile text-primary uppercase tracking-wider absolute left-1/2 transform -translate-x-1/2 md:font-display-lg md:text-display-lg truncate max-w-[60%] text-center">
+            Le Gentleman Pub
+        </h1>
+<div class="w-10 h-10 rounded-full overflow-hidden border-2 border-outline-variant/30 cursor-pointer active:scale-95 duration-200">
+<img alt="Profile Avatar" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBNMEsyLeuc-3Fm7kg1AsCwiw8IGCQs0tNRsNcI8h3gFF0WecJqgZFI8nDxM7d-BzjdH2EZtSdnY6X5Jnqe_EXXEOZfO0MtsD15h_Cgeb83tJ39v7idbSuN-4WuOPDw_ITF9Olfy-wDFL79SNk8fNZqBhFmakYGrFHdiV5JnJyPp4PrHCRLVrmsUScqAKPfE_LYYrSI_7SBAxjFvoeUsjIHCnOO9x4XcGGNU7cg6MAFKkEa-QysDwUWMsruUNt0GXhUZJyg3GQBIsI"/>
+</div>
+</header>
+<!-- Main Content Canvas (Physical Menu Card) -->
+<div class="relative z-10 pt-[100px] pb-[120px] md:pb-section-desktop px-gutter">
+<main class="max-w-4xl mx-auto bg-surface/95 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.8)] border border-outline-variant/30 relative overflow-hidden">
+<!-- Subtle Inner Texture for the Menu Paper -->
+<div class="absolute inset-0 opacity-[0.03] mix-blend-screen pointer-events-none">
+<img alt="Menu Texture" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDgBv03v7PKR3ZssnEtkPif3IL2c47NROmWJEiT-gMxgNzxgmWLUsezCNhYY0aVex23wq5fUOGLjZffOKBCYDH2q1u3GIL62jJN2Rhwhl27kSpSyycKEpvHDbyeXSMhiA7ZM9KxhlM4RHHA24uu3QwY-ndtGw4FBe5-ovjP5Z9iZrIQZcf_ctavSwgKiXSynB-iy7OongHrY4qwH1uUE0IEhnlCjpGJheovARRDiofmUZwpYIi_dQkqIamm1ZEX3pdfPUZBnGrU80k"/>
+</div>
+<!-- Art Deco Inner Border -->
+<div class="relative z-20 border-[1.5px] border-primary/20 m-3 p-6 md:p-12 space-y-section-mobile md:space-y-section-desktop bg-[#121212]/50 backdrop-blur-sm">
+<!-- Page Header -->
+<div class="text-center">
+<h2 class="font-display-lg text-5xl md:text-6xl text-primary tracking-widest uppercase">La Carte</h2>
+<div class="art-deco-divider">
+<div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-surface/95 px-3 flex items-center justify-center">
+<span class="text-primary-container text-sm">❖</span>
+</div>
+</div>
+<p class="font-body-muted text-lg text-on-surface-variant max-w-2xl mx-auto italic">Discover our curated selection of fine spirits, craft brews, and elevated pub fare. Happy hour pricing applies daily from 5pm to 7pm.</p>
+</div>
+<!-- Section: Beers -->
+<section>
+<h3 class="font-display-lg text-2xl text-primary-container uppercase tracking-[0.2em] mb-lg text-center flex items-center justify-center gap-4 before:content-[''] before:h-[1px] before:w-12 before:bg-primary/30 after:content-[''] after:h-[1px] after:w-12 after:bg-primary/30">Draught &amp; Craft</h3>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-10 mt-8">
+<!-- Menu Item -->
+<article class="flex flex-col group cursor-pointer">
+<div class="flex justify-between items-start">
+<h4 class="font-headline-md text-xl text-on-surface group-hover:text-primary transition-colors tracking-wide">Guinness Stout</h4>
+<div class="art-deco-line"></div>
+<span class="font-headline-md text-xl text-primary-container drop-shadow-[0_0_8px_rgba(212,175,55,0.3)]">€6.50</span>
+</div>
+<p class="font-body-muted text-body-muted text-on-surface-variant/80 mt-2 italic">Perfectly poured, Irish classic. Rich, creamy, and dark.</p>
+</article>
+<!-- Menu Item (Happy Hour) -->
+<article class="flex flex-col group cursor-pointer relative">
+<div class="flex justify-between items-start">
+<h4 class="font-headline-md text-xl text-on-surface group-hover:text-primary transition-colors flex items-center gap-2 tracking-wide">
+                                    Galway Hooker IPA
+                                    <span class="material-symbols-outlined text-[16px] text-primary" style="font-variation-settings: 'FILL' 1;">star</span>
+</h4>
+<div class="art-deco-line"></div>
+<div class="flex items-center gap-3">
+<span class="font-body-muted text-body-muted text-on-surface-variant/60 line-through">€7.00</span>
+<span class="font-headline-md text-xl text-primary-container drop-shadow-[0_0_8px_rgba(212,175,55,0.4)]">€5.50</span>
+</div>
+</div>
+<p class="font-body-muted text-body-muted text-on-surface-variant/80 mt-2 italic">Floral and citrus notes with a crisp bitter finish.</p>
+</article>
+<!-- Menu Item -->
+<article class="flex flex-col group cursor-pointer">
+<div class="flex justify-between items-start">
+<h4 class="font-headline-md text-xl text-on-surface group-hover:text-primary transition-colors tracking-wide">Kilkenny Irish Cream Ale</h4>
+<div class="art-deco-line"></div>
+<span class="font-headline-md text-xl text-primary-container drop-shadow-[0_0_8px_rgba(212,175,55,0.3)]">€6.50</span>
+</div>
+<p class="font-body-muted text-body-muted text-on-surface-variant/80 mt-2 italic">Smooth, malty, and slightly sweet with a nitrogenated head.</p>
+</article>
+</div>
+</section>
+<!-- Section: Cocktails -->
+<section>
+<h3 class="font-display-lg text-2xl text-primary-container uppercase tracking-[0.2em] mb-lg text-center flex items-center justify-center gap-4 before:content-[''] before:h-[1px] before:w-12 before:bg-primary/30 after:content-[''] after:h-[1px] after:w-12 after:bg-primary/30">Signature Cocktails</h3>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-10 mt-8">
+<!-- Menu Item -->
+<article class="flex flex-col group cursor-pointer">
+<div class="flex justify-between items-start">
+<h4 class="font-headline-md text-xl text-on-surface group-hover:text-primary transition-colors tracking-wide">Smoked Old Fashioned</h4>
+<div class="art-deco-line"></div>
+<span class="font-headline-md text-xl text-primary-container drop-shadow-[0_0_8px_rgba(212,175,55,0.3)]">€14.00</span>
+</div>
+<p class="font-body-muted text-body-muted text-on-surface-variant/80 mt-2 italic">Teeling Small Batch, Demerara sugar, Angostura bitters, hickory smoke.</p>
+</article>
+<!-- Menu Item (Happy Hour) -->
+<article class="flex flex-col group cursor-pointer">
+<div class="flex justify-between items-start">
+<h4 class="font-headline-md text-xl text-on-surface group-hover:text-primary transition-colors flex items-center gap-2 tracking-wide">
+                                    Midnight Espresso
+                                    <span class="material-symbols-outlined text-[16px] text-primary" style="font-variation-settings: 'FILL' 1;">star</span>
+</h4>
+<div class="art-deco-line"></div>
+<div class="flex items-center gap-3">
+<span class="font-body-muted text-body-muted text-on-surface-variant/60 line-through">€13.00</span>
+<span class="font-headline-md text-xl text-primary-container drop-shadow-[0_0_8px_rgba(212,175,55,0.4)]">€9.50</span>
+</div>
+</div>
+<p class="font-body-muted text-body-muted text-on-surface-variant/80 mt-2 italic">Vodka, fresh local espresso, coffee liqueur, vanilla syrup.</p>
+</article>
+<!-- Menu Item -->
+<article class="flex flex-col group cursor-pointer">
+<div class="flex justify-between items-start">
+<h4 class="font-headline-md text-xl text-on-surface group-hover:text-primary transition-colors tracking-wide">The Parisian Mule</h4>
+<div class="art-deco-line"></div>
+<span class="font-headline-md text-xl text-primary-container drop-shadow-[0_0_8px_rgba(212,175,55,0.3)]">€12.50</span>
+</div>
+<p class="font-body-muted text-body-muted text-on-surface-variant/80 mt-2 italic">Cognac, ginger beer, fresh lime juice, Angostura bitters, mint.</p>
+</article>
+</div>
+</section>
+<!-- Section: Pub Food -->
+<section>
+<h3 class="font-display-lg text-2xl text-primary-container uppercase tracking-[0.2em] mb-lg text-center flex items-center justify-center gap-4 before:content-[''] before:h-[1px] before:w-12 before:bg-primary/30 after:content-[''] after:h-[1px] after:w-12 after:bg-primary/30">Elevated Fare</h3>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-10 mt-8">
+<!-- Menu Item -->
+<article class="flex flex-col group cursor-pointer">
+<div class="flex justify-between items-start">
+<h4 class="font-headline-md text-xl text-on-surface group-hover:text-primary transition-colors tracking-wide">Gentleman's Burger</h4>
+<div class="art-deco-line"></div>
+<span class="font-headline-md text-xl text-primary-container drop-shadow-[0_0_8px_rgba(212,175,55,0.3)]">€18.50</span>
+</div>
+<p class="font-body-muted text-body-muted text-on-surface-variant/80 mt-2 italic">Dry-aged Irish beef, smoked mature cheddar, bacon jam, brioche bun. Served with house fries.</p>
+</article>
+<!-- Menu Item -->
+<article class="flex flex-col group cursor-pointer">
+<div class="flex justify-between items-start">
+<h4 class="font-headline-md text-xl text-on-surface group-hover:text-primary transition-colors tracking-wide">Galway Bay Fish &amp; Chips</h4>
+<div class="art-deco-line"></div>
+<span class="font-headline-md text-xl text-primary-container drop-shadow-[0_0_8px_rgba(212,175,55,0.3)]">€16.00</span>
+</div>
+<p class="font-body-muted text-body-muted text-on-surface-variant/80 mt-2 italic">Beer-battered haddock, minted mushy peas, tartare sauce, thick-cut chips.</p>
+</article>
+<!-- Menu Item (Happy Hour) -->
+<article class="flex flex-col group cursor-pointer">
+<div class="flex justify-between items-start">
+<h4 class="font-headline-md text-xl text-on-surface group-hover:text-primary transition-colors flex items-center gap-2 tracking-wide">
+                                    Truffle &amp; Parmesan Fries
+                                    <span class="material-symbols-outlined text-[16px] text-primary" style="font-variation-settings: 'FILL' 1;">star</span>
+</h4>
+<div class="art-deco-line"></div>
+<div class="flex items-center gap-3">
+<span class="font-body-muted text-body-muted text-on-surface-variant/60 line-through">€8.00</span>
+<span class="font-headline-md text-xl text-primary-container drop-shadow-[0_0_8px_rgba(212,175,55,0.4)]">€6.00</span>
+</div>
+</div>
+<p class="font-body-muted text-body-muted text-on-surface-variant/80 mt-2 italic">Skin-on fries tossed in white truffle oil and aged parmesan dust.</p>
+</article>
+</div>
+</section>
+</div>
+</main>
+</div>
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="md:hidden fixed bottom-0 w-full z-50 backdrop-blur-md border-t border-outline-variant/10 shadow-lg bg-surface-container-high/90 dark:bg-surface-container-high/90 flex justify-around items-center h-20 px-4 pb-safe">
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary-fixed-dim active:scale-90 transition-transform w-16" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">home</span>
+<span class="font-label-caps text-label-caps mt-1">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary-fixed-dim active:scale-90 transition-transform w-16" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">sports_score</span>
+<span class="font-label-caps text-label-caps mt-1">Matches</span>
+</a>
+<!-- Active Tab: Menu -->
+<a class="flex flex-col items-center justify-center text-primary font-bold bg-secondary-container/30 rounded-xl px-3 py-1 active:scale-90 transition-transform w-16" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">menu_book</span>
+<span class="font-label-caps text-label-caps mt-1">Menu</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary-fixed-dim active:scale-90 transition-transform w-16" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">info</span>
+<span class="font-label-caps text-label-caps mt-1">Info</span>
+</a>
+</nav>
+</body></html>

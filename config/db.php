@@ -51,4 +51,38 @@ function e(string $s): string
 // Définit timezone FR pour toutes les pages
 date_default_timezone_set('Europe/Paris');
 
+/**
+ * Retourne le badge de statut du match avec minute si live
+ * Exemples: "LIVE 45'", "UPCOMING", "FINISHED"
+ */
+function get_match_status_badge(?string $statut, ?int $minute = null): string
+{
+    if ($statut === 'live') {
+        return 'LIVE' . ($minute !== null ? " {$minute}'" : '');
+    }
+    if ($statut === 'finished') {
+        return 'FINISHED';
+    }
+    return 'UPCOMING';
+}
+
+/**
+ * Vérifie si un match est en direct
+ */
+function is_match_live(?string $statut): bool
+{
+    return $statut === 'live';
+}
+
+/**
+ * Formate le score du match "2 - 1" ou retourne null si pas disponible
+ */
+function format_score(?int $score1, ?int $score2): ?string
+{
+    if ($score1 === null || $score2 === null) {
+        return null;
+    }
+    return "{$score1} - {$score2}";
+}
+
 // $pdo est disponible pour les inclusions

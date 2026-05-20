@@ -273,6 +273,10 @@ if (is_admin_authenticated() && $_SERVER['REQUEST_METHOD'] === 'POST') {
             $competition = trim((string)($_POST['competition'] ?? ''));
             $dateInput = trim((string)($_POST['date_match'] ?? ''));
         $customSlug = trim((string)($_POST['slug_seo'] ?? ''));
+        $score1 = $_POST['score_equipe_1'] !== '' ? (int)($_POST['score_equipe_1'] ?? 0) : null;
+        $score2 = $_POST['score_equipe_2'] !== '' ? (int)($_POST['score_equipe_2'] ?? 0) : null;
+        $minute = $_POST['minute_actuelle'] !== '' ? (int)($_POST['minute_actuelle'] ?? 0) : null;
+        $statut = trim((string)($_POST['statut'] ?? 'scheduled'));
             $dateMatch = normalize_datetime_input($dateInput);
 
             if ($equipe1 === '' || $equipe2 === '' || !$dateMatch) {
@@ -287,7 +291,7 @@ if (is_admin_authenticated() && $_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if ($matchId > 0) {
-          $stmt = $pdo->prepare('UPDATE matchs SET slug = :slug, equipe_1 = :equipe_1, equipe_2 = :equipe_2, competition = :competition, date_match = :date_match, image_path = :image_path WHERE id = :id');
+          $stmt = $pdo->prepare('UPDATE matchs SET slug = :slug, equipe_1 = :equipe_1, equipe_2 = :equipe_2, competition = :competition, date_match = :date_match, image_path = :image_path, score_equipe_1 = :score_equipe_1, score_equipe_2 = :score_equipe_2, minute_actuelle = :minute_actuelle, statut = :statut WHERE id = :id');
           $stmt->execute([
             ':slug' => $slug,
             ':equipe_1' => $equipe1,
@@ -295,11 +299,15 @@ if (is_admin_authenticated() && $_SERVER['REQUEST_METHOD'] === 'POST') {
             ':competition' => $competition,
             ':date_match' => $dateMatch,
             ':image_path' => $imagePath,
+            ':score_equipe_1' => $score1,
+            ':score_equipe_2' => $score2,
+            ':minute_actuelle' => $minute,
+            ':statut' => $statut,
             ':id' => $matchId,
           ]);
           set_flash('success', 'Match mis à jour avec le slug ' . $slug . '.');
         } else {
-          $stmt = $pdo->prepare('INSERT INTO matchs (slug, equipe_1, equipe_2, competition, date_match, image_path, is_active) VALUES (:slug, :equipe_1, :equipe_2, :competition, :date_match, :image_path, 1)');
+          $stmt = $pdo->prepare('INSERT INTO matchs (slug, equipe_1, equipe_2, competition, date_match, image_path, score_equipe_1, score_equipe_2, minute_actuelle, statut, is_active) VALUES (:slug, :equipe_1, :equipe_2, :competition, :date_match, :image_path, :score_equipe_1, :score_equipe_2, :minute_actuelle, :statut, 1)');
           $stmt->execute([
             ':slug' => $slug,
             ':equipe_1' => $equipe1,
@@ -307,6 +315,10 @@ if (is_admin_authenticated() && $_SERVER['REQUEST_METHOD'] === 'POST') {
             ':competition' => $competition,
             ':date_match' => $dateMatch,
             ':image_path' => $imagePath,
+            ':score_equipe_1' => $score1,
+            ':score_equipe_2' => $score2,
+            ':minute_actuelle' => $minute,
+            ':statut' => $statut,
           ]);
           set_flash('success', 'Match ajouté avec le slug ' . $slug . '.');
         }
@@ -591,6 +603,34 @@ $heroBgImage = config_value('hero_bg_image', '/assets/uploads/hero-bg.jpg');
                 <img src="<?php echo e($editMatch['image_path']); ?>" alt="Image du match" class="h-48 w-full object-cover">
               </div>
             <?php endif; ?>
+            
+            <hr class="border-white/10">
+            
+            <div class="grid gap-4 md:grid-cols-3">
+              <div>
+                <label class="mb-2 block text-sm text-gray-300">Score Équipe 1</label>
+                <input type="number" name="score_equipe_1" min="0" max="999" value="<?php echo e(get_match_edit_value($editMatch, 'score_equipe_1')); ?>" class="w-full rounded-lg bg-[#121212] border border-white/10 px-4 py-3 text-white outline-none focus:border-amber-400" placeholder="ex: 2">
+              </div>
+              <div>
+                <label class="mb-2 block text-sm text-gray-300">Score Équipe 2</label>
+                <input type="number" name="score_equipe_2" min="0" max="999" value="<?php echo e(get_match_edit_value($editMatch, 'score_equipe_2')); ?>" class="w-full rounded-lg bg-[#121212] border border-white/10 px-4 py-3 text-white outline-none focus:border-amber-400" placeholder="ex: 1">
+              </div>
+              <div>
+                <label class="mb-2 block text-sm text-gray-300">Minute (si LIVE)</label>
+                <input type="number" name="minute_actuelle" min="0" max="120" value="<?php echo e(get_match_edit_value($editMatch, 'minute_actuelle')); ?>" class="w-full rounded-lg bg-[#121212] border border-white/10 px-4 py-3 text-white outline-none focus:border-amber-400" placeholder="ex: 45">
+              </div>
+            </div>
+            
+            <div>
+              <label class="mb-2 block text-sm text-gray-300">Statut du match</label>
+              <select name="statut" class="w-full rounded-lg bg-[#121212] border border-white/10 px-4 py-3 text-white outline-none focus:border-amber-400">
+                <option value="scheduled" <?php echo get_match_edit_value($editMatch, 'statut') === 'scheduled' || !$editMatch ? 'selected' : ''; ?>>À venir (UPCOMING)</option>
+                <option value="live" <?php echo get_match_edit_value($editMatch, 'statut') === 'live' ? 'selected' : ''; ?>>En direct (LIVE)</option>
+                <option value="finished" <?php echo get_match_edit_value($editMatch, 'statut') === 'finished' ? 'selected' : ''; ?>>Terminé (FINISHED)</option>
+              </select>
+              <p class="mt-2 text-xs text-gray-500">Le statut s'affichera sur la page d'accueil. LIVE affichera la minute actuelle.</p>
+            </div>
+            
             <button type="submit" class="rounded-lg bg-amber-400 px-4 py-3 font-semibold text-black hover:bg-amber-300"><?php echo $editMatch ? 'Mettre à jour le match' : 'Ajouter le match'; ?></button>
           </form>
         </div>

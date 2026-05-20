@@ -15,10 +15,15 @@ CREATE TABLE IF NOT EXISTS `matchs` (
   `competition` VARCHAR(150) DEFAULT NULL,
   `date_match` DATETIME NOT NULL,
   `image_path` VARCHAR(255) DEFAULT NULL,
+  `score_equipe_1` INT DEFAULT NULL,
+  `score_equipe_2` INT DEFAULT NULL,
+  `minute_actuelle` INT DEFAULT NULL,
+  `statut` ENUM('scheduled', 'live', 'finished') DEFAULT 'scheduled',
   `is_active` TINYINT(1) NOT NULL DEFAULT 1,
   PRIMARY KEY (`id`),
   UNIQUE KEY `slug_unique` (`slug`),
-  KEY `date_match_idx` (`date_match`)
+  KEY `date_match_idx` (`date_match`),
+  KEY `statut_idx` (`statut`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Table de la carte des produits

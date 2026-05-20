@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Info &amp; Contact - Le Gentleman Pub</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&amp;family=Inter:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "on-secondary": "#1c3625",
+                        "primary": "#f2ca50",
+                        "primary-fixed": "#ffe088",
+                        "inverse-primary": "#735c00",
+                        "secondary": "#b0ceb7",
+                        "on-tertiary-fixed-variant": "#474646",
+                        "surface-tint": "#e9c349",
+                        "secondary-fixed": "#ccead2",
+                        "tertiary-container": "#b5b2b2",
+                        "tertiary-fixed-dim": "#c9c6c5",
+                        "on-surface": "#e1e2e4",
+                        "inverse-on-surface": "#2e3132",
+                        "surface": "#121212",
+                        "surface-container": "#1d2022",
+                        "text-muted": "#9CA3AF",
+                        "on-tertiary-fixed": "#1c1b1b",
+                        "tertiary-fixed": "#e5e2e1",
+                        "surface-container-high": "#282a2c",
+                        "surface-dim": "#071a12",
+                        "on-error-container": "#ffdad6",
+                        "on-surface-variant": "#d0c5af",
+                        "inverse-surface": "#e1e2e4",
+                        "on-secondary-fixed": "#062012",
+                        "on-error": "#690005",
+                        "status-closed": "#EF4444",
+                        "on-primary-container": "#554300",
+                        "primary-container": "#d4af37",
+                        "secondary-fixed-dim": "#b0ceb7",
+                        "status-live": "#22C55E",
+                        "on-background": "#e1e2e4",
+                        "secondary-container": "#354f3d",
+                        "surface-variant": "#323537",
+                        "error-container": "#93000a",
+                        "on-primary": "#3c2f00",
+                        "surface-container-lowest": "#0c0f10",
+                        "error": "#ffb4ab",
+                        "on-primary-fixed": "#241a00",
+                        "surface-container-low": "#191c1e",
+                        "on-secondary-container": "#a2c0a9",
+                        "outline": "#99907c",
+                        "on-tertiary": "#313030",
+                        "surface-bright": "#37393b",
+                        "on-primary-fixed-variant": "#574500",
+                        "on-tertiary-container": "#454545",
+                        "tertiary": "#d0cecd",
+                        "on-secondary-fixed-variant": "#324c3b",
+                        "outline-variant": "#4d4635",
+                        "background": "#111415",
+                        "primary-fixed-dim": "#e9c349",
+                        "surface-container-highest": "#323537",
+                        "glowing-brass": "#D4AF37"
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    spacing: {
+                        "gutter": "16px",
+                        "md": "16px",
+                        "section-desktop": "80px",
+                        "margin-safe": "16px",
+                        "xl": "32px",
+                        "section-mobile": "48px",
+                        "sm": "8px",
+                        "xs": "4px",
+                        "lg": "24px",
+                        "base": "4px"
+                    },
+                    fontFamily: {
+                        "display-lg": ["Playfair Display"],
+                        "body-muted": ["Inter"],
+                        "headline-md": ["Playfair Display"],
+                        "display-lg-mobile": ["Playfair Display"],
+                        "label-caps": ["Inter"],
+                        "body-base": ["Inter"],
+                        "title-sm": ["Inter"]
+                    },
+                    fontSize: {
+                        "display-lg": ["48px", { lineHeight: "56px", letterSpacing: "-0.01em", fontWeight: "700" }],
+                        "body-muted": ["14px", { lineHeight: "20px", fontWeight: "400" }],
+                        "headline-md": ["32px", { lineHeight: "40px", fontWeight: "700" }],
+                        "display-lg-mobile": ["36px", { lineHeight: "44px", letterSpacing: "-0.01em", fontWeight: "700" }],
+                        "label-caps": ["12px", { lineHeight: "16px", letterSpacing: "0.05em", fontWeight: "600" }],
+                        "body-base": ["16px", { lineHeight: "24px", fontWeight: "400" }],
+                        "title-sm": ["20px", { lineHeight: "28px", fontWeight: "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .neon-pulse {
+            animation: neon-glow 2s infinite alternate;
+        }
+        @keyframes neon-glow {
+            from { box-shadow: 0 0 5px rgba(34, 197, 94, 0.2), 0 0 10px rgba(34, 197, 94, 0.2); }
+            to { box-shadow: 0 0 10px rgba(34, 197, 94, 0.6), 0 0 20px rgba(34, 197, 94, 0.4); }
+        }
+        .bg-stone-wall {
+            background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuASlC_kSnFYTmGoi-V0mrubgkM9P-gZypGhR7NNN5_ApJVIRZO2Q-M_N8TfCWALhROB6vBXBidVCn-Fj2vhwoTxgRsjni1QabPMeE_m-of4GyhylwWliIpwJ2ZlCeP9J7pAHk7HJmZEBN_9tV56dtcVuzl2sY0Fb3RfJNB9fjtdf2QvLaqbjOxGD1jVhwv1I15AXCbkV64NFVQGGtm6rZ4EY1CdZFmV9M2g9LvW7yj9ZLk0YQYdF7ghoXNXdjNArFOufwsAFDnG3pg');
+            background-size: cover;
+            background-position: center;
+        }
+        .bg-pub-exterior {
+            background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAtGolaecyJ2JFSieQ35K2j7Y3EYx_XWEbUWmOSTK65d7hhn8Q0d2m4xs5YltlUPJjDxf4-RZo4PI_HvGvmlSenYwBdUbNSxLcQycYJb5o7KAJmUxBjK3lpD_MUNXaaM-2yfGLt5Q1Yn7i-7C6sqVwv24EUTYe2yT59WkgNAEktj3UU59ZKbY8oxejx5UxHU17V2c_MqpJIQbdRAAJn5VwEuS2Ql6LoDS5mZmk_VbGg2qNR9WAVarzGvSnWGuCeO1TsYJPSRk2SZxw');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-background text-on-background antialiased min-h-screen pb-safe bg-pub-exterior relative">
+<div class="absolute inset-0 bg-background/90 z-0"></div>
+<!-- TopAppBar -->
+<header class="bg-surface-container/80 dark:bg-surface-container/80 font-headline-md text-headline-md fixed top-0 w-full z-50 backdrop-blur-xl border-b border-outline-variant/20 flat no shadows flex justify-between items-center px-gutter h-[72px]">
+<div class="flex items-center hover:text-primary-fixed transition-colors active:scale-95 duration-200 cursor-pointer">
+<span class="material-symbols-outlined text-glowing-brass mr-sm" data-icon="menu">menu</span>
+</div>
+<div class="font-display-lg-mobile text-display-lg-mobile text-primary uppercase tracking-wider text-center flex-1">
+            Le Gentleman Pub
+        </div>
+<div class="flex items-center hover:text-primary-fixed transition-colors active:scale-95 duration-200 cursor-pointer">
+<span class="material-symbols-outlined text-glowing-brass" data-icon="account_circle">account_circle</span>
+</div>
+</header>
+<!-- Main Canvas -->
+<main class="pt-[96px] pb-[100px] md:pb-[48px] max-w-6xl mx-auto px-gutter relative z-10">
+<!-- Hero Title -->
+<section class="mb-section-mobile md:mb-section-desktop text-center bg-surface/60 backdrop-blur-md p-xl rounded-2xl border border-outline-variant/30">
+<h1 class="font-display-lg-mobile text-display-lg-mobile md:font-display-lg md:text-display-lg text-glowing-brass mb-md drop-shadow-lg">Information &amp; Contact</h1>
+<p class="font-body-base text-body-base text-on-surface-variant max-w-2xl mx-auto text-lg leading-relaxed">Discover our location, opening hours, and ways to connect with us. Experience the atmosphere of a modern Irish boutique pub.</p>
+</section>
+<!-- Bento Grid Layout -->
+<div class="grid grid-cols-1 md:grid-cols-12 gap-lg mb-section-mobile md:mb-section-desktop">
+<!-- Map Placeholder (Spans 8 cols on desktop) -->
+<div class="md:col-span-8 rounded-2xl overflow-hidden relative h-[400px] md:h-[500px] border border-glowing-brass/30 shadow-2xl group">
+<img alt="Map Location" class="absolute inset-0 w-full h-full object-cover sepia-[.5] hue-rotate-[10deg] saturate-[.8] contrast-[1.2] opacity-80 group-hover:opacity-100 transition-opacity duration-500" data-alt="A detailed, moody map interface showing a sophisticated boutique pub location in Dublin, Ireland. The map uses a dark mode aesthetic with deep forest green and matte black tones, highlighted by glowing brushed gold location pins. The styling is minimal, high-contrast, and elegant, fitting a premium nightlife brand. The overall mood is atmospheric and refined." data-location="Dublin, IE" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBupWLhI_7iiGRaeW3D5ENRkFxyoyN7tDpC0rElVLSG4Ibbw5nBSzTxbH7bC6SJINJaEkAVmIHS64pgJSxA8t-5Z0cgF5Q8NTCYXuADPkU_OuSwN75p1dEZWzWCojqHsjwwGgEujdSsvJGAZG57hhD2vfngKWQeJw9aTnmV3UxsrXfCp6H4RB9rry0T7WkJ_wtSLPaagHcmPg15gGZwB8bYzNGHRByxzFx5ra3efgK7zrfyH6yI4V7cJeokV-6b1yAyREs8dG7fH-I"/>
+<div class="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent opacity-90"></div>
+<div class="absolute bottom-md left-md bg-surface/80 backdrop-blur-xl p-md rounded-xl border border-glowing-brass/40 flex items-center shadow-lg">
+<span class="material-symbols-outlined text-glowing-brass mr-sm text-3xl" data-icon="location_on">location_on</span>
+<span class="font-title-sm text-title-sm text-on-surface tracking-wide">Find Us Here</span>
+</div>
+</div>
+<!-- Status & Quick Contact (Spans 4 cols on desktop) -->
+<div class="md:col-span-4 flex flex-col gap-lg">
+<!-- Status Badge -->
+<div class="bg-surface-container-high/80 backdrop-blur-md rounded-2xl p-xl border border-outline-variant/30 flex flex-col items-center justify-center flex-1 hover:scale-[1.02] transition-transform hover:border-glowing-brass/50 cursor-pointer shadow-xl relative overflow-hidden">
+<div class="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent z-0"></div>
+<div class="relative z-10 flex flex-col items-center">
+<div class="mb-md flex items-center space-x-sm bg-secondary-container/30 px-md py-sm rounded-full border border-status-live/40 neon-pulse">
+<div class="w-3 h-3 rounded-full bg-status-live"></div>
+<span class="font-label-caps text-label-caps text-status-live tracking-widest font-bold">OUVERT</span>
+</div>
+<p class="font-headline-md text-headline-md text-on-surface text-center mb-sm">We are currently open</p>
+<p class="font-body-muted text-body-muted text-glowing-brass text-center italic text-lg">Until 2:00 AM tonight</p>
+</div>
+</div>
+<!-- Call to Action -->
+<div class="bg-stone-wall rounded-2xl p-xl border border-outline-variant/30 flex flex-col justify-center flex-1 relative overflow-hidden group shadow-xl">
+<div class="absolute inset-0 bg-background/80 group-hover:bg-background/70 transition-colors z-0"></div>
+<div class="absolute inset-0 bg-gradient-to-tr from-glowing-brass/10 to-transparent z-0"></div>
+<div class="relative z-10">
+<h3 class="font-headline-md text-headline-md text-glowing-brass mb-sm flex items-center drop-shadow-md">
+<span class="material-symbols-outlined mr-sm text-3xl" data-icon="event_seat">event_seat</span>
+                            Reservations
+                        </h3>
+<p class="font-body-base text-body-base text-on-surface-variant mb-lg leading-relaxed">Book your table for an unforgettable evening.</p>
+<button class="w-full bg-glowing-brass text-on-primary-fixed font-title-sm text-title-sm py-md rounded-xl hover:bg-primary-fixed transition-colors shadow-lg hover:shadow-xl font-bold uppercase tracking-wider">
+                            Book Now
+                        </button>
+</div>
+</div>
+</div>
+</div>
+<!-- 3-Column Footer Style Information -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-lg">
+<!-- Address -->
+<div class="flex flex-col text-center md:text-left bg-stone-wall rounded-2xl border border-outline-variant/30 relative overflow-hidden shadow-xl p-xl">
+<div class="absolute inset-0 bg-background/85 z-0"></div>
+<div class="relative z-10">
+<div class="flex items-center justify-center md:justify-start mb-md text-glowing-brass">
+<span class="material-symbols-outlined mr-sm text-3xl" data-icon="map">map</span>
+<h3 class="font-headline-md text-headline-md drop-shadow-md">Address</h3>
+</div>
+<div class="font-body-base text-body-base text-on-surface-variant space-y-sm text-lg">
+<p>123 Whiskey Lane</p>
+<p>Temple Bar District</p>
+<p>Dublin, D02 XP99</p>
+<p>Ireland</p>
+</div>
+</div>
+</div>
+<!-- Hours -->
+<div class="flex flex-col text-center md:text-left bg-stone-wall rounded-2xl border border-outline-variant/30 relative overflow-hidden shadow-xl p-xl">
+<div class="absolute inset-0 bg-background/85 z-0"></div>
+<div class="relative z-10">
+<div class="flex items-center justify-center md:justify-start mb-md text-glowing-brass">
+<span class="material-symbols-outlined mr-sm text-3xl" data-icon="schedule">schedule</span>
+<h3 class="font-headline-md text-headline-md drop-shadow-md">Hours</h3>
+</div>
+<ul class="font-body-base text-body-base text-on-surface-variant space-y-sm text-lg">
+<li class="flex justify-between md:justify-start md:space-x-xl">
+<span class="w-24 text-left font-semibold text-on-surface">Mon - Wed</span>
+<span>4:00 PM - 12:00 AM</span>
+</li>
+<li class="flex justify-between md:justify-start md:space-x-xl">
+<span class="w-24 text-left font-semibold text-on-surface">Thu - Sat</span>
+<span>4:00 PM - 2:00 AM</span>
+</li>
+<li class="flex justify-between md:justify-start md:space-x-xl">
+<span class="w-24 text-left font-semibold text-on-surface">Sunday</span>
+<span>12:00 PM - 11:00 PM</span>
+</li>
+</ul>
+</div>
+</div>
+<!-- Contact & Socials -->
+<div class="flex flex-col text-center md:text-left bg-surface-container/90 backdrop-blur-md rounded-2xl border border-outline-variant/30 shadow-xl p-xl relative overflow-hidden">
+<div class="absolute inset-0 bg-gradient-to-b from-glowing-brass/5 to-transparent z-0"></div>
+<div class="relative z-10">
+<div class="flex items-center justify-center md:justify-start mb-md text-glowing-brass">
+<span class="material-symbols-outlined mr-sm text-3xl" data-icon="alternate_email">alternate_email</span>
+<h3 class="font-headline-md text-headline-md drop-shadow-md">Contact</h3>
+</div>
+<div class="font-body-base text-body-base text-on-surface-variant space-y-md mb-lg text-lg">
+<p class="flex items-center justify-center md:justify-start hover:text-glowing-brass transition-colors cursor-pointer group">
+<span class="material-symbols-outlined text-2xl mr-sm text-glowing-brass group-hover:scale-110 transition-transform" data-icon="call">call</span>
+                        +353 1 234 5678
+                    </p>
+<p class="flex items-center justify-center md:justify-start hover:text-glowing-brass transition-colors cursor-pointer group">
+<span class="material-symbols-outlined text-2xl mr-sm text-glowing-brass group-hover:scale-110 transition-transform" data-icon="mail">mail</span>
+                        hello@legentlemanpub.ie
+                    </p>
+</div>
+<div class="flex space-x-md justify-center md:justify-start mt-auto">
+<a class="w-12 h-12 rounded-full bg-surface-variant/80 border border-glowing-brass/30 flex items-center justify-center text-glowing-brass hover:bg-glowing-brass hover:text-surface hover:shadow-[0_0_15px_rgba(212,175,55,0.4)] transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="public">public</span>
+</a>
+<a class="w-12 h-12 rounded-full bg-surface-variant/80 border border-glowing-brass/30 flex items-center justify-center text-glowing-brass hover:bg-glowing-brass hover:text-surface hover:shadow-[0_0_15px_rgba(212,175,55,0.4)] transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="share">share</span>
+</a>
+<a class="w-12 h-12 rounded-full bg-surface-variant/80 border border-glowing-brass/30 flex items-center justify-center text-glowing-brass hover:bg-glowing-brass hover:text-surface hover:shadow-[0_0_15px_rgba(212,175,55,0.4)] transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="chat">chat</span>
+</a>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="md:hidden bg-surface-container-high/90 dark:bg-surface-container-high/90 fixed bottom-0 w-full z-50 backdrop-blur-md border-t border-outline-variant/10 shadow-lg flex justify-around items-center h-20 px-4 pb-safe">
+<div class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary-fixed-dim active:scale-90 transition-transform cursor-pointer">
+<span class="material-symbols-outlined mb-xs" data-icon="home">home</span>
+<span class="font-label-caps text-label-caps">Home</span>
+</div>
+<div class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary-fixed-dim active:scale-90 transition-transform cursor-pointer">
+<span class="material-symbols-outlined mb-xs" data-icon="sports_score">sports_score</span>
+<span class="font-label-caps text-label-caps">Matches</span>
+</div>
+<div class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary-fixed-dim active:scale-90 transition-transform cursor-pointer">
+<span class="material-symbols-outlined mb-xs" data-icon="menu_book">menu_book</span>
+<span class="font-label-caps text-label-caps">Menu</span>
+</div>
+<!-- Active State for Info -->
+<div class="flex flex-col items-center justify-center text-glowing-brass font-bold bg-secondary-container/30 rounded-xl px-3 py-1 hover:text-primary-fixed-dim active:scale-90 transition-transform cursor-pointer">
+<span class="material-symbols-outlined mb-xs" data-icon="info" style="font-variation-settings: 'FILL' 1;">info</span>
+<span class="font-label-caps text-label-caps">Info</span>
+</div>
+</nav>
+</body></html>

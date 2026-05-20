@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Le Gentleman Pub</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&amp;family=Playfair+Display:ital,wght@0,700;1,700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-secondary": "#1c3625",
+                        "primary": "#f2ca50",
+                        "primary-fixed": "#ffe088",
+                        "inverse-primary": "#735c00",
+                        "secondary": "#b0ceb7",
+                        "on-tertiary-fixed-variant": "#474646",
+                        "surface-tint": "#e9c349",
+                        "secondary-fixed": "#ccead2",
+                        "tertiary-container": "#b5b2b2",
+                        "tertiary-fixed-dim": "#c9c6c5",
+                        "on-surface": "#e1e2e4",
+                        "inverse-on-surface": "#2e3132",
+                        "surface": "#121212",
+                        "surface-container": "#1d2022",
+                        "text-muted": "#9CA3AF",
+                        "on-tertiary-fixed": "#1c1b1b",
+                        "tertiary-fixed": "#e5e2e1",
+                        "surface-container-high": "#282a2c",
+                        "surface-dim": "#071a12",
+                        "on-error-container": "#ffdad6",
+                        "on-surface-variant": "#d0c5af",
+                        "inverse-surface": "#e1e2e4",
+                        "on-secondary-fixed": "#062012",
+                        "on-error": "#690005",
+                        "status-closed": "#EF4444",
+                        "on-primary-container": "#554300",
+                        "primary-container": "#d4af37",
+                        "secondary-fixed-dim": "#b0ceb7",
+                        "status-live": "#22C55E",
+                        "on-background": "#e1e2e4",
+                        "secondary-container": "#354f3d",
+                        "surface-variant": "#323537",
+                        "error-container": "#93000a",
+                        "on-primary": "#3c2f00",
+                        "surface-container-lowest": "#0c0f10",
+                        "error": "#ffb4ab",
+                        "on-primary-fixed": "#241a00",
+                        "surface-container-low": "#191c1e",
+                        "on-secondary-container": "#a2c0a9",
+                        "outline": "#99907c",
+                        "on-tertiary": "#313030",
+                        "surface-bright": "#37393b",
+                        "on-primary-fixed-variant": "#574500",
+                        "on-tertiary-container": "#454545",
+                        "tertiary": "#d0cecd",
+                        "on-secondary-fixed-variant": "#324c3b",
+                        "outline-variant": "#4d4635",
+                        "background": "#111415",
+                        "primary-fixed-dim": "#e9c349",
+                        "surface-container-highest": "#323537"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "gutter": "16px",
+                        "md": "16px",
+                        "section-desktop": "80px",
+                        "margin-safe": "16px",
+                        "xl": "32px",
+                        "section-mobile": "48px",
+                        "sm": "8px",
+                        "xs": "4px",
+                        "lg": "24px",
+                        "base": "4px",
+                        "safe": "env(safe-area-inset-bottom)"
+                    },
+                    "fontFamily": {
+                        "display-lg": ["Playfair Display"],
+                        "body-muted": ["Inter"],
+                        "headline-md": ["Playfair Display"],
+                        "display-lg-mobile": ["Playfair Display"],
+                        "label-caps": ["Inter"],
+                        "body-base": ["Inter"],
+                        "title-sm": ["Inter"]
+                    },
+                    "fontSize": {
+                        "display-lg": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+                        "body-muted": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "headline-md": ["32px", { "lineHeight": "40px", "fontWeight": "700" }],
+                        "display-lg-mobile": ["36px", { "lineHeight": "44px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+                        "label-caps": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "body-base": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "title-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .animate-pulse-glow {
+            animation: pulseGlow 2s infinite;
+        }
+        @keyframes pulseGlow {
+            0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4); }
+            70% { box-shadow: 0 0 0 6px rgba(34, 197, 94, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+        }
+        .text-glow {
+            text-shadow: 0 0 20px rgba(212, 175, 55, 0.4);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-background text-on-background font-body-base antialiased min-h-screen flex flex-col pb-24 md:pb-0 relative">
+<!-- Fixed Full Screen Background -->
+<div class="fixed inset-0 z-[-1]">
+<img alt="Wooden bar counter" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCLTbuCdCHl4UzeJyFKvwEBl6mN9GK5koKkMM5_92JaVz_vVIci2weXpNYiMAuRaIqqHhM6bRQJSzSzgmKaJALyff1vjWlXe9EDbkoFc-NYloKLymyIM_a4LnCbdrwEftgJxDFnfYbLIJK6e-L1MIYXy0yD0S2240plsGYwkQfjYkXdgRbZv-8bBBkBvshEwhwG30Fo751NhKmrrDWHbTtGyLROSaRb0Grkbl4tk7IHmpo5cG56oHR7414QDrkRYrXtrdbXL7UWxmA"/>
+<div class="absolute inset-0 bg-gradient-to-b from-background/95 via-background/80 to-background/95 mix-blend-multiply"></div>
+</div>
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-transparent">
+<div class="flex justify-between items-center px-gutter h-[72px] max-w-6xl mx-auto">
+<button aria-label="Open Menu" class="text-primary-container hover:text-primary transition-colors active:scale-95 duration-200 p-2 -ml-2 drop-shadow-[0_0_8px_rgba(212,175,55,0.3)]">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">menu</span>
+</button>
+<h1 class="font-display-lg-mobile text-2xl text-primary-container uppercase tracking-[0.2em] md:font-display-lg md:text-3xl text-glow">Le Gentleman Pub</h1>
+<button aria-label="Profile" class="w-10 h-10 rounded-full bg-primary-container/10 flex items-center justify-center overflow-hidden border border-primary-container/30 active:scale-95 duration-200 backdrop-blur-sm">
+<span class="material-symbols-outlined text-primary-container" style="font-variation-settings: 'FILL' 1;">person</span>
+</button>
+</div>
+</header>
+<main class="flex-grow">
+<!-- Hero Section -->
+<section class="relative w-full min-h-[85vh] flex items-center pt-24 pb-12">
+<!-- Hero Content -->
+<div class="relative z-10 w-full max-w-6xl mx-auto px-gutter flex flex-col gap-8 md:gap-12">
+<div class="flex flex-col max-w-4xl">
+<span class="font-label-caps text-label-caps text-primary-container/70 tracking-[0.3em] uppercase mb-4">Premium Irish Sports Pub</span>
+<h2 class="font-display-lg text-[4.5rem] leading-[0.85] md:text-[8rem] text-primary-container text-glow tracking-tighter">
+                        Elegance <br/><span class="italic text-on-surface opacity-90 pl-8 md:pl-24 text-[4rem] md:text-[7rem] font-light">in Every</span> <br/>Pour.
+                    </h2>
+<p class="font-body-base text-lg md:text-xl text-on-surface-variant mt-8 max-w-md border-l-2 border-primary-container/50 pl-4 leading-relaxed">
+                        Experience the refined atmosphere of a classic Irish pub infused with modern Parisian chic.
+                    </p>
+</div>
+<!-- Asymmetric CTAs -->
+<div class="flex flex-col sm:flex-row gap-6 mt-4 w-full sm:w-auto">
+<!-- Primary Glass Button -->
+<button class="bg-primary-container/10 border border-primary-container text-primary-container font-title-sm text-title-sm py-5 px-10 shadow-[inset_0_0_20px_rgba(212,175,55,0.15)] hover:bg-primary-container/20 hover:shadow-[inset_0_0_30px_rgba(212,175,55,0.3)] transition-all duration-300 flex-1 sm:flex-none text-center transform active:scale-95 backdrop-blur-md uppercase tracking-wider text-glow">
+                        Réserver
+                    </button>
+<!-- Secondary Glass Button -->
+<button class="bg-surface/20 border border-outline-variant/40 text-on-surface hover:border-primary-container/50 hover:text-primary-container font-title-sm text-title-sm py-5 px-10 transition-all duration-300 flex-shrink-0 text-center transform active:scale-95 backdrop-blur-sm uppercase tracking-wider">
+                        La Carte
+                    </button>
+</div>
+</div>
+</section>
+<!-- Live Match Feature Area -->
+<section class="relative py-section-mobile md:py-section-desktop max-w-none mx-auto overflow-hidden mt-12 border-t border-primary-container/10">
+<!-- Peek-through Texture -->
+<div class="absolute inset-0 z-0">
+<img alt="Pub Exterior" class="w-full h-full object-cover opacity-10 mix-blend-luminosity grayscale" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAtGolaecyJ2JFSieQ35K2j7Y3EYx_XWEbUWmOSTK65d7hhn8Q0d2m4xs5YltlUPJjDxf4-RZo4PI_HvGvmlSenYwBdUbNSxLcQycYJb5o7KAJmUxBjK3lpD_MUNXaaM-2yfGLt5Q1Yn7i-7C6sqVwv24EUTYe2yT59WkgNAEktj3UU59ZKbY8oxejx5UxHU17V2c_MqpJIQbdRAAJn5VwEuS2Ql6LoDS5mZmk_VbGg2qNR9WAVarzGvSnWGuCeO1TsYJPSRk2SZxw"/>
+<div class="absolute inset-0 bg-gradient-to-b from-background via-transparent to-background"></div>
+</div>
+<div class="relative z-10 max-w-6xl mx-auto px-gutter flex flex-col gap-12">
+<div class="flex items-center justify-between border-b border-primary-container/20 pb-4">
+<h3 class="font-display-lg text-3xl md:text-5xl text-on-surface uppercase tracking-widest opacity-90">Now Showing</h3>
+<span class="font-label-caps text-label-caps text-primary-container hover:text-primary cursor-pointer tracking-[0.2em] uppercase">View All</span>
+</div>
+<!-- Editorial Layout instead of Card -->
+<div class="flex flex-col md:flex-row items-center justify-between gap-12 py-8">
+<div class="flex items-center gap-4 absolute top-8 left-1/2 -translate-x-1/2 md:relative md:top-0 md:left-0 md:translate-x-0">
+<span class="material-symbols-outlined text-primary-container text-xl">sports_rugby</span>
+<span class="font-label-caps text-sm text-primary-container uppercase tracking-[0.3em]">Six Nations</span>
+</div>
+<!-- Ireland -->
+<div class="flex-1 text-center w-full flex flex-col items-center">
+<h4 class="font-display-lg text-4xl md:text-6xl text-on-surface uppercase tracking-widest mb-2">Ireland</h4>
+<span class="font-display-lg text-8xl md:text-[10rem] text-primary-container text-glow leading-none">24</span>
+</div>
+<!-- Center Info -->
+<div class="flex flex-col items-center gap-8 relative z-20">
+<div class="bg-status-live/10 border border-status-live/40 px-6 py-2 rounded-full flex items-center gap-3 backdrop-blur-md shadow-[0_0_15px_rgba(34,197,94,0.1)]">
+<div class="w-2.5 h-2.5 rounded-full bg-status-live animate-pulse-glow"></div>
+<span class="font-label-caps text-sm text-status-live tracking-[0.2em]">LIVE</span>
+</div>
+<span class="font-display-lg text-4xl text-outline-variant italic font-light opacity-50">vs</span>
+</div>
+<!-- France -->
+<div class="flex-1 text-center w-full flex flex-col items-center">
+<h4 class="font-display-lg text-4xl md:text-6xl text-on-surface uppercase tracking-widest mb-2">France</h4>
+<span class="font-display-lg text-8xl md:text-[10rem] text-on-surface-variant leading-none opacity-80">17</span>
+</div>
+</div>
+<div class="mt-4 flex flex-col items-center gap-6">
+<span class="font-body-muted text-sm text-text-muted/70 tracking-widest uppercase">Main Screen • Sound ON</span>
+<button class="text-primary-container hover:text-primary font-label-caps text-sm uppercase flex items-center gap-2 border-b border-primary-container/30 pb-1 hover:border-primary transition-colors tracking-[0.2em] text-glow">
+                        Order Drinks <span class="material-symbols-outlined text-lg">arrow_forward</span>
+</button>
+</div>
+</div>
+</section>
+</main>
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="md:hidden fixed bottom-0 w-full z-50 bg-background/80 backdrop-blur-2xl shadow-lg border-t border-primary-container/10 flex justify-around items-center h-24 px-4 pb-safe">
+<!-- Active Tab: Home -->
+<a class="flex flex-col items-center justify-center text-primary-container font-bold w-16 active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined mb-1 drop-shadow-[0_0_8px_rgba(212,175,55,0.4)]" style="font-variation-settings: 'FILL' 1;">home</span>
+<span class="font-label-caps text-[10px] tracking-widest uppercase">Home</span>
+<div class="w-1 h-1 bg-primary-container rounded-full mt-1 shadow-[0_0_5px_rgba(212,175,55,0.8)]"></div>
+</a>
+<!-- Inactive Tab: Matches -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant/60 hover:text-primary-container w-16 active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined mb-1" style="font-variation-settings: 'FILL' 0;">sports_score</span>
+<span class="font-label-caps text-[10px] tracking-widest uppercase">Matches</span>
+</a>
+<!-- Inactive Tab: Menu -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant/60 hover:text-primary-container w-16 active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined mb-1" style="font-variation-settings: 'FILL' 0;">menu_book</span>
+<span class="font-label-caps text-[10px] tracking-widest uppercase">Menu</span>
+</a>
+<!-- Inactive Tab: Info -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant/60 hover:text-primary-container w-16 active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined mb-1" style="font-variation-settings: 'FILL' 0;">info</span>
+<span class="font-label-caps text-[10px] tracking-widest uppercase">Info</span>
+</a>
+</nav>
+</body></html>

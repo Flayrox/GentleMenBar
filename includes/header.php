@@ -1,68 +1,90 @@
 <?php
 $siteName = config_value('site_name', 'Le Gentleman Pub');
-$siteTagline = config_value('site_tagline', 'Pub irlandais à Saint-Michel, Paris');
+$siteTagline = config_value('site_tagline', 'Pub Irlandais & Sports Bar à Paris');
 if (!isset($page_title)) {
-  $page_title = $siteName;
+    $page_title = $siteName;
 }
 if (!isset($meta_description)) {
-  $meta_description = $siteTagline;
+    $meta_description = $siteTagline;
 }
 ?>
-<!doctype html>
-<html lang="fr">
+<!DOCTYPE html>
+<html class="dark" lang="fr">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
     <title><?php echo e($page_title); ?></title>
-    <meta name="description" content="<?php echo e($meta_description); ?>">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            colors: {
-              pubgreen: '#0B2516',
-              pubdark: '#121212',
-              pubaccent: '#D4AF37',
-              pubnav: '#1A1A1A'
-            },
-            fontFamily: {
-              display: ['Playfair Display', 'serif'],
-              body: ['Inter', 'system-ui', 'sans-serif']
-            }
-          }
-        }
-      }
-    </script>
+    <meta name="description" content="<?php echo e($meta_description); ?>"/>
     <meta name="robots" content="index, follow">
+    
+    <link href="https://fonts.googleapis.com" rel="preconnect"/>
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Playfair+Display:ital,wght@0,700;1,700&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#f2ca50",
+                        "primary-container": "#d4af37",
+                        "primary-fixed": "#ffe088",
+                        "surface": "#121212",
+                        "surface-container": "#1d2022",
+                        "background": "#111415",
+                        "on-surface": "#e1e2e4",
+                        "on-surface-variant": "#d0c5af",
+                        "on-background": "#e1e2e4",
+                        "status-live": "#22C55E",
+                        "status-closed": "#EF4444",
+                        "outline-variant": "#4d4635"
+                    },
+                    fontFamily: {
+                        "display-lg": ["Playfair Display"],
+                        "headline-md": ["Playfair Display"],
+                        "body-base": ["Inter"],
+                        "label-caps": ["Inter"]
+                    },
+                    fontSize: {
+                        "display-lg": ["48px", { "lineHeight": "56px", "fontWeight": "700" }],
+                        "headline-md": ["32px", { "lineHeight": "40px", "fontWeight": "700" }],
+                        "body-base": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "label-caps": ["12px", { "lineHeight": "16px", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .text-glow { text-shadow: 0 0 20px rgba(212, 175, 55, 0.4); }
+        .neon-text-gold { text-shadow: 0 0 12px rgba(212, 175, 55, 0.6); }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400; }
+        body { min-height: 100dvh; }
+    </style>
 </head>
-<body class="bg-[--pub-bg] text-gray-100" style="background-color:#0B2516; font-family:Inter, sans-serif;">
-<header class="bg-[--pubnav]" style="background-color:#1A1A1A;">
-  <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-    <a href="/" class="flex items-center gap-3 text-white">
-      <div class="w-10 h-10 rounded-full bg-gradient-to-br from-yellow-400 to-amber-600 flex items-center justify-center text-black font-bold">G</div>
-      <div>
-        <div class="text-lg font-display"><?php echo e($siteName); ?></div>
-        <div class="text-sm text-gray-300"><?php echo e($siteTagline); ?></div>
-      </div>
-    </a>
-    <nav class="hidden md:flex gap-6 items-center text-sm">
-      <a href="#matchs" class="hover:text-amber-300"><?php echo e(config_value('nav_matchs_label', 'Matchs')); ?></a>
-      <a href="#carte" class="hover:text-amber-300"><?php echo e(config_value('nav_carte_label', 'Carte')); ?></a>
-      <a href="#contact" class="hover:text-amber-300"><?php echo e(config_value('nav_infos_label', 'Infos')); ?></a>
-    </nav>
-    <div class="md:hidden">
-      <button id="nav-toggle" aria-label="Menu" class="text-gray-200">☰</button>
+<body class="bg-background text-on-background font-body-base antialiased min-h-screen flex flex-col pb-24 md:pb-0 relative">
+
+<!-- Fixed Background -->
+<div class="fixed inset-0 z-[-1]">
+    <img alt="Pub ambiance" class="w-full h-full object-cover" src="/assets/uploads/hero-bg.jpg"/>
+    <div class="absolute inset-0 bg-gradient-to-b from-background/95 via-background/80 to-background/95"></div>
+</div>
+
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50">
+    <div class="flex justify-between items-center px-4 h-[72px] max-w-6xl mx-auto w-full">
+        <button aria-label="Menu" class="text-primary-container hover:text-primary transition-colors active:scale-95 duration-200 p-2 -ml-2">
+            <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">menu</span>
+        </button>
+        <h1 class="font-display-lg text-2xl text-primary-container uppercase tracking-widest text-glow"><?php echo e($siteName); ?></h1>
+        <a href="/le-comptoir" aria-label="Admin" class="w-10 h-10 rounded-full bg-primary-container/10 flex items-center justify-center border border-primary-container/30 active:scale-95 duration-200 backdrop-blur-sm hover:bg-primary-container/20 transition-colors">
+            <span class="material-symbols-outlined text-primary-container" style="font-variation-settings: 'FILL' 1;">person</span>
+        </a>
     </div>
-  </div>
-  <script>
-    document.getElementById('nav-toggle')?.addEventListener('click', function(){
-      alert('Menu mobile - à implémenter');
-    });
-  </script>
 </header>
 
-<main class="min-h-screen">
+<main class="flex-grow mt-[72px]">
+
