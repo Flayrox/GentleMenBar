@@ -4,8 +4,12 @@ declare(strict_types=1);
 // Configurez les variables d'environnement DB_HOST, DB_NAME, DB_USER, DB_PASS
 $dbHost = getenv('DB_HOST') ?: 'localhost';
 $dbName = getenv('DB_NAME') ?: 'legentlemanpub';
-$dbUser = getenv('DB_USER') ?: 'db_user';
-$dbPass = getenv('DB_PASS') ?: 'db_pass';
+//$dbUser = getenv('DB_USER') ?: 'db_user';
+//$dbPass = getenv('DB_PASS') ?: 'db_pass';
+
+$dbUser = getenv('DB_USER') ?: 'root';
+$dbPass = getenv('DB_PASS') ?: '';
+
 
 $dsn = "mysql:host={$dbHost};dbname={$dbName};charset=utf8mb4";
 $options = [

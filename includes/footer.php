@@ -88,7 +88,7 @@ $privacyLabel = config_value('footer_privacy_label', 'Espace Privé');
             <p class="text-on-surface-variant text-sm"><?php echo e(config_value('site_tagline')); ?></p>
         </div>
         <div>
-            <h4 class="font-headline-md text-lg text-primary mb-4">Horaires</h4>
+            <h4 class="font-headline-md text-lg text-primary mb-4"><?php echo e(config_value('footer_hours_title', 'Horaires')); ?></h4>
             <ul class="text-on-surface-variant text-sm space-y-1">
                 <li>Semaine: <?php echo e(config_value('horaires_semaine')); ?></li>
                 <li>Weekend: <?php echo e(config_value('horaires_weekend')); ?></li>
@@ -97,7 +97,7 @@ $privacyLabel = config_value('footer_privacy_label', 'Espace Privé');
             </ul>
         </div>
         <div>
-            <h4 class="font-headline-md text-lg text-primary mb-4">Contact</h4>
+            <h4 class="font-headline-md text-lg text-primary mb-4"><?php echo e(config_value('footer_socials_title', 'Contact')); ?></h4>
             <p class="text-on-surface-variant text-sm"><?php echo e($address); ?></p>
             <p class="text-on-surface-variant text-sm"><a href="tel:<?php echo preg_replace('/[^0-9+]/', '', $telephone); ?>" class="text-primary hover:text-primary-fixed"><?php echo e($telephone); ?></a></p>
             <div class="flex gap-3 mt-4 text-sm">

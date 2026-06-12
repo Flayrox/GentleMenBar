@@ -79,9 +79,10 @@ echo "<script type=\"application/ld+json\">" . json_encode($event, JSON_UNESCAPE
         <p class="mt-4 text-lg">Lieu: <strong><?php echo e($siteName); ?> — <?php echo e(config_value('bar_adresse', 'Saint-Michel, Paris 5e')); ?></strong></p>
         <p class="mt-4 text-yellow-300 font-semibold">Happy Hour applicable sur certaines boissons — renseignez-vous au bar.</p>
       </div>
-      <div class="flex flex-col items-center gap-3">
-        <a href="https://www.privateaser.com/" target="_blank" rel="noopener" class="bg-amber-400 text-black px-4 py-2 rounded-md font-semibold">Réserver / Privatiser</a>
-        <a href="#carte" class="text-sm text-gray-300">Voir la carte & Happy Hour</a>
+      <div class="flex flex-col items-center gap-3 w-full">
+        <a href="<?php echo e(config_value('booking_privateaser_url', 'https://www.privateaser.com/lieu/5113-le-gentleman-pub')); ?>" target="_blank" rel="noopener" class="w-full text-center bg-amber-400 text-black px-4 py-2.5 rounded-md font-semibold hover:bg-amber-300 transition-colors">Réserver via Privateaser</a>
+        <a href="<?php echo e(config_value('booking_mistergoodbeer_url', 'https://www.mistergoodbeer.com/bars/gentleman-paris')); ?>" target="_blank" rel="noopener" class="w-full text-center border border-amber-400 text-amber-400 px-4 py-2.5 rounded-md font-semibold hover:bg-amber-400 hover:text-black transition-all">Voir sur MisterGoodBeer</a>
+        <a href="/#carte" class="text-sm text-gray-300 hover:text-amber-300 transition-colors mt-2">Voir la carte & Happy Hour</a>
       </div>
     </div>
     <div class="mt-6">

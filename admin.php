@@ -290,8 +290,13 @@ if (is_admin_authenticated() && $_SERVER['REQUEST_METHOD'] === 'POST') {
           $imagePath = $matchId > 0 ? (string)($editMatch['image_path'] ?? '') : null;
         }
 
+        $isFeatured = isset($_POST['is_featured']) ? 1 : 0;
+        if ($isFeatured === 1) {
+            $pdo->exec('UPDATE `matchs` SET `is_featured` = 0');
+        }
+
         if ($matchId > 0) {
-          $stmt = $pdo->prepare('UPDATE matchs SET slug = :slug, equipe_1 = :equipe_1, equipe_2 = :equipe_2, competition = :competition, date_match = :date_match, image_path = :image_path, score_equipe_1 = :score_equipe_1, score_equipe_2 = :score_equipe_2, minute_actuelle = :minute_actuelle, statut = :statut WHERE id = :id');
+          $stmt = $pdo->prepare('UPDATE matchs SET slug = :slug, equipe_1 = :equipe_1, equipe_2 = :equipe_2, competition = :competition, date_match = :date_match, image_path = :image_path, score_equipe_1 = :score_equipe_1, score_equipe_2 = :score_equipe_2, minute_actuelle = :minute_actuelle, statut = :statut, is_featured = :is_featured WHERE id = :id');
           $stmt->execute([
             ':slug' => $slug,
             ':equipe_1' => $equipe1,
@@ -303,11 +308,12 @@ if (is_admin_authenticated() && $_SERVER['REQUEST_METHOD'] === 'POST') {
             ':score_equipe_2' => $score2,
             ':minute_actuelle' => $minute,
             ':statut' => $statut,
+            ':is_featured' => $isFeatured,
             ':id' => $matchId,
           ]);
           set_flash('success', 'Match mis à jour avec le slug ' . $slug . '.');
         } else {
-          $stmt = $pdo->prepare('INSERT INTO matchs (slug, equipe_1, equipe_2, competition, date_match, image_path, score_equipe_1, score_equipe_2, minute_actuelle, statut, is_active) VALUES (:slug, :equipe_1, :equipe_2, :competition, :date_match, :image_path, :score_equipe_1, :score_equipe_2, :minute_actuelle, :statut, 1)');
+          $stmt = $pdo->prepare('INSERT INTO matchs (slug, equipe_1, equipe_2, competition, date_match, image_path, score_equipe_1, score_equipe_2, minute_actuelle, statut, is_active, is_featured) VALUES (:slug, :equipe_1, :equipe_2, :competition, :date_match, :image_path, :score_equipe_1, :score_equipe_2, :minute_actuelle, :statut, 1, :is_featured)');
           $stmt->execute([
             ':slug' => $slug,
             ':equipe_1' => $equipe1,
@@ -319,32 +325,78 @@ if (is_admin_authenticated() && $_SERVER['REQUEST_METHOD'] === 'POST') {
             ':score_equipe_2' => $score2,
             ':minute_actuelle' => $minute,
             ':statut' => $statut,
+            ':is_featured' => $isFeatured,
           ]);
           set_flash('success', 'Match ajouté avec le slug ' . $slug . '.');
         }
             redirect_admin('matchs');
         }
 
+      if ($action === 'import_match_api') {
+        $equipe1 = trim((string)($_POST['equipe_1'] ?? ''));
+        $equipe2 = trim((string)($_POST['equipe_2'] ?? ''));
+        $competition = trim((string)($_POST['competition'] ?? ''));
+        $dateMatch = trim((string)($_POST['date_match'] ?? ''));
+        $imagePath = trim((string)($_POST['image_path'] ?? ''));
+        $isFeatured = isset($_POST['is_featured']) ? 1 : 0;
+
+        if ($equipe1 === '' || $equipe2 === '' || $dateMatch === '') {
+            throw new RuntimeException('Données de match incomplètes.');
+        }
+
+        if ($isFeatured === 1) {
+            $pdo->exec('UPDATE `matchs` SET `is_featured` = 0');
+        }
+
+        $slug = generate_unique_match_slug($pdo, $equipe1, $equipe2, $dateMatch);
+
+        $stmt = $pdo->prepare('INSERT INTO matchs (slug, equipe_1, equipe_2, competition, date_match, image_path, statut, is_active, is_featured) VALUES (:slug, :equipe_1, :equipe_2, :competition, :date_match, :image_path, \'scheduled\', 1, :is_featured)');
+        $stmt->execute([
+            ':slug' => $slug,
+            ':equipe_1' => $equipe1,
+            ':equipe_2' => $equipe2,
+            ':competition' => $competition,
+            ':date_match' => $dateMatch,
+            ':image_path' => $imagePath !== '' ? $imagePath : null,
+            ':is_featured' => $isFeatured,
+        ]);
+
+        set_flash('success', 'Match "' . $equipe1 . ' vs ' . $equipe2 . '" importé avec succès !');
+        redirect_admin('matchs');
+      }
+
       if ($action === 'save_site_config') {
         upsert_site_config($pdo, [
+          'site_name' => trim((string)($_POST['site_name'] ?? '')),
+          'site_tagline' => trim((string)($_POST['site_tagline'] ?? '')),
           'hero_title' => trim((string)($_POST['hero_title'] ?? '')),
           'hero_subtitle' => trim((string)($_POST['hero_subtitle'] ?? '')),
+          'hero_cta_primary' => trim((string)($_POST['hero_cta_primary'] ?? '')),
+          'hero_cta_secondary' => trim((string)($_POST['hero_cta_secondary'] ?? '')),
           'bar_adresse' => trim((string)($_POST['bar_adresse'] ?? '')),
           'bar_telephone' => trim((string)($_POST['bar_telephone'] ?? '')),
           'insta_link' => trim((string)($_POST['insta_link'] ?? '')),
           'facebook_link' => trim((string)($_POST['facebook_link'] ?? '')),
+          'booking_privateaser_url' => trim((string)($_POST['booking_privateaser_url'] ?? '')),
+          'booking_mistergoodbeer_url' => trim((string)($_POST['booking_mistergoodbeer_url'] ?? '')),
           'horaires_semaine' => trim((string)($_POST['horaires_semaine'] ?? '')),
           'horaires_weekend' => trim((string)($_POST['horaires_weekend'] ?? '')),
           'horaires_dimanche' => trim((string)($_POST['horaires_dimanche'] ?? '')),
         ]);
 
         $flashConfig = [
+          'site_name' => trim((string)($_POST['site_name'] ?? '')),
+          'site_tagline' => trim((string)($_POST['site_tagline'] ?? '')),
           'hero_title' => trim((string)($_POST['hero_title'] ?? '')),
           'hero_subtitle' => trim((string)($_POST['hero_subtitle'] ?? '')),
+          'hero_cta_primary' => trim((string)($_POST['hero_cta_primary'] ?? '')),
+          'hero_cta_secondary' => trim((string)($_POST['hero_cta_secondary'] ?? '')),
           'bar_adresse' => trim((string)($_POST['bar_adresse'] ?? '')),
           'bar_telephone' => trim((string)($_POST['bar_telephone'] ?? '')),
           'insta_link' => trim((string)($_POST['insta_link'] ?? '')),
           'facebook_link' => trim((string)($_POST['facebook_link'] ?? '')),
+          'booking_privateaser_url' => trim((string)($_POST['booking_privateaser_url'] ?? '')),
+          'booking_mistergoodbeer_url' => trim((string)($_POST['booking_mistergoodbeer_url'] ?? '')),
           'horaires_semaine' => trim((string)($_POST['horaires_semaine'] ?? '')),
           'horaires_weekend' => trim((string)($_POST['horaires_weekend'] ?? '')),
           'horaires_dimanche' => trim((string)($_POST['horaires_dimanche'] ?? '')),
@@ -366,6 +418,42 @@ if (is_admin_authenticated() && $_SERVER['REQUEST_METHOD'] === 'POST') {
         upsert_site_config($pdo, ['hero_bg_image' => $path]);
         $config['hero_bg_image'] = $path;
         set_flash('success', 'Fond du hero mis à jour.');
+        redirect_admin('design');
+      }
+
+      if ($action === 'upload_carousel_img') {
+        if (empty($_FILES['carousel_img']) || (int)$_FILES['carousel_img']['error'] === UPLOAD_ERR_NO_FILE) {
+          throw new RuntimeException('Veuillez sélectionner une image pour le carrousel.');
+        }
+
+        $slug = 'carousel-' . time();
+        $path = upload_image_to_jpeg($_FILES['carousel_img'], $slug);
+
+        $carouselJson = config_value('carousel_images', '[]');
+        $carouselImages = json_decode($carouselJson, true) ?: [];
+        $carouselImages[] = $path;
+
+        upsert_site_config($pdo, ['carousel_images' => json_encode($carouselImages)]);
+        set_flash('success', 'Photo ajoutée au carrousel.');
+        redirect_admin('design');
+      }
+
+      if ($action === 'delete_carousel_img') {
+        $imgPath = trim((string)($_POST['img_path'] ?? ''));
+        $carouselJson = config_value('carousel_images', '[]');
+        $carouselImages = json_decode($carouselJson, true) ?: [];
+
+        $carouselImages = array_values(array_filter($carouselImages, function($img) use ($imgPath) {
+            return $img !== $imgPath;
+        }));
+
+        $fullPath = __DIR__ . $imgPath;
+        if (file_exists($fullPath) && is_file($fullPath)) {
+            @unlink($fullPath);
+        }
+
+        upsert_site_config($pdo, ['carousel_images' => json_encode($carouselImages)]);
+        set_flash('success', 'Photo retirée du carrousel.');
         redirect_admin('design');
       }
 
@@ -561,6 +649,52 @@ $heroBgImage = config_value('hero_bg_image', '/assets/uploads/hero-bg.jpg');
     </div>
 
     <?php if ($tab === 'matchs'): ?>
+      <!-- API Import Section -->
+      <div class="mb-8 rounded-2xl border border-white/10 bg-[#1A1A1A] p-6 shadow-lg">
+        <div class="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 pb-4">
+          <div>
+            <h2 class="text-2xl font-display text-amber-300">Recherche & Importation de Matchs (API de Sport)</h2>
+            <p class="text-xs text-gray-400 mt-1">Recherchez les prochains matchs de vos équipes préférées et importez-les en un clic.</p>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <button type="button" onclick="quickSearch('133714')" class="rounded-full bg-white/5 border border-white/10 px-3 py-1.5 text-xs hover:bg-amber-400 hover:text-black transition-colors">PSG 🔴🔵</button>
+            <button type="button" onclick="quickSearch('133707')" class="rounded-full bg-white/5 border border-white/10 px-3 py-1.5 text-xs hover:bg-amber-400 hover:text-black transition-colors">Marseille 🔵⚪</button>
+            <button type="button" onclick="quickSearch('134989')" class="rounded-full bg-white/5 border border-white/10 px-3 py-1.5 text-xs hover:bg-amber-400 hover:text-black transition-colors">France 🇫🇷</button>
+            <button type="button" onclick="quickSearch('133739')" class="rounded-full bg-white/5 border border-white/10 px-3 py-1.5 text-xs hover:bg-amber-400 hover:text-black transition-colors">Real Madrid ⚪</button>
+            <button type="button" onclick="quickSearch('133738')" class="rounded-full bg-white/5 border border-white/10 px-3 py-1.5 text-xs hover:bg-amber-400 hover:text-black transition-colors">Barcelone 🔴🔵</button>
+          </div>
+        </div>
+        
+        <div class="mt-6 flex gap-3">
+          <input type="text" id="api-search-input" placeholder="Rechercher une autre équipe (ex: Lyon, Arsenal, Monaco...)" class="flex-1 rounded-lg bg-[#121212] border border-white/10 px-4 py-3 text-white outline-none focus:border-amber-400 text-sm">
+          <button type="button" onclick="searchTeam()" class="rounded-lg bg-amber-400 px-6 py-3 font-semibold text-black hover:bg-amber-300 text-sm transition-colors">Rechercher</button>
+        </div>
+
+        <!-- Team Results -->
+        <div id="team-results" class="mt-4 hidden grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-3"></div>
+
+        <!-- Loading / No events indicator -->
+        <div id="api-status" class="mt-6 text-sm text-gray-400 hidden text-center py-4 bg-black/20 rounded-xl"></div>
+
+        <!-- Matches Results Table -->
+        <div id="matches-results-container" class="mt-6 hidden">
+          <h3 class="text-sm font-semibold text-gray-300 uppercase tracking-wider mb-3">Prochains matchs disponibles</h3>
+          <div class="overflow-x-auto rounded-xl border border-white/10 bg-[#121212]">
+            <table class="w-full text-left text-sm">
+              <thead class="text-xs text-gray-400 uppercase bg-white/5 border-b border-white/10">
+                <tr>
+                  <th class="px-4 py-3">Match</th>
+                  <th class="px-4 py-3">Compétition / Date</th>
+                  <th class="px-4 py-3 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="matches-results-body" class="divide-y divide-white/5">
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
       <section class="grid gap-6 lg:grid-cols-2">
         <div class="rounded-2xl border border-white/10 bg-[#1A1A1A] p-6 shadow-lg">
           <h2 class="text-2xl font-display text-amber-300"><?php echo $editMatch ? 'Éditer un match' : 'Ajouter un match'; ?></h2>
@@ -630,6 +764,11 @@ $heroBgImage = config_value('hero_bg_image', '/assets/uploads/hero-bg.jpg');
               </select>
               <p class="mt-2 text-xs text-gray-500">Le statut s'affichera sur la page d'accueil. LIVE affichera la minute actuelle.</p>
             </div>
+
+            <div class="flex items-center gap-2 py-2">
+              <input type="checkbox" name="is_featured" id="is_featured" value="1" <?php echo get_match_edit_value($editMatch, 'is_featured') == 1 ? 'checked' : ''; ?> class="rounded bg-[#121212] border-white/10 text-amber-400 focus:ring-amber-400">
+              <label for="is_featured" class="text-sm text-gray-300">Mettre ce match à l'affiche sur l'accueil (Bannière Hero)</label>
+            </div>
             
             <button type="submit" class="rounded-lg bg-amber-400 px-4 py-3 font-semibold text-black hover:bg-amber-300"><?php echo $editMatch ? 'Mettre à jour le match' : 'Ajouter le match'; ?></button>
           </form>
@@ -649,7 +788,7 @@ $heroBgImage = config_value('hero_bg_image', '/assets/uploads/hero-bg.jpg');
                       <div>
                         <div class="text-lg font-semibold text-white"><?php echo e($match['equipe_1']); ?> <span class="text-gray-500">vs</span> <?php echo e($match['equipe_2']); ?></div>
                         <div class="mt-1 text-sm text-gray-400"><?php echo e((string)($match['competition'] ?: 'Compétition non renseignée')); ?> · <?php echo e((new DateTimeImmutable($match['date_match']))->format('d/m/Y H:i')); ?></div>
-                        <div class="mt-2 text-xs text-gray-500">Slug: <?php echo e($match['slug']); ?> · Statut: <?php echo (int)$match['is_active'] === 1 ? '<span class="text-emerald-300">Actif</span>' : '<span class="text-red-300">Désactivé</span>'; ?></div>
+                        <div class="mt-2 text-xs text-gray-500">Slug: <?php echo e($match['slug']); ?> · Statut: <?php echo (int)$match['is_active'] === 1 ? '<span class="text-emerald-300">Actif</span>' : '<span class="text-red-300">Désactivé</span>'; ?> <?php echo (int)($match['is_featured'] ?? 0) === 1 ? '· <span class="text-amber-300 font-bold">★ À L\'AFFICHE</span>' : ''; ?></div>
                       </div>
                       <div class="flex flex-wrap gap-2">
                         <a href="/le-comptoir?tab=matchs&edit_match=<?php echo (int)$match['id']; ?>" class="rounded-lg border border-amber-400/30 px-3 py-2 text-sm text-amber-300 hover:bg-amber-400 hover:text-black">Modifier</a>
@@ -679,25 +818,68 @@ $heroBgImage = config_value('hero_bg_image', '/assets/uploads/hero-bg.jpg');
           </div>
         </div>
       </section>
-    <?php elseif ($tab === 'design'): ?>
+    <?php elseif ($tab === 'design'): 
+      $carouselJson = config_value('carousel_images', '[]');
+      $carouselImages = json_decode($carouselJson, true) ?: [];
+    ?>
       <section class="grid gap-6 lg:grid-cols-2">
-        <div class="rounded-2xl border border-white/10 bg-[#1A1A1A] p-6 shadow-lg">
-          <h2 class="text-2xl font-display text-amber-300">Design & Photos</h2>
-          <form method="post" enctype="multipart/form-data" class="mt-6 space-y-4">
-            <input type="hidden" name="csrf_token" value="<?php echo e($_SESSION['csrf_token']); ?>">
-            <input type="hidden" name="action" value="upload_hero_bg">
-            <div>
-              <label class="mb-2 block text-sm text-gray-300">Fond de la section Hero</label>
-              <input type="file" name="hero_bg" accept="image/jpeg,image/png,image/webp" required class="w-full rounded-lg bg-[#121212] border border-white/10 px-4 py-3 text-white outline-none focus:border-amber-400">
-              <p class="mt-2 text-xs text-gray-500">Le fichier sera converti et enregistré en <span class="text-amber-300">hero-bg.jpg</span>.</p>
-            </div>
-            <button class="rounded-lg bg-amber-400 px-4 py-3 font-semibold text-black hover:bg-amber-300">Mettre à jour le Hero</button>
-          </form>
+        <div class="space-y-6">
+          <div class="rounded-2xl border border-white/10 bg-[#1A1A1A] p-6 shadow-lg">
+            <h2 class="text-2xl font-display text-amber-300">Design & Photos</h2>
+            <form method="post" enctype="multipart/form-data" class="mt-6 space-y-4">
+              <input type="hidden" name="csrf_token" value="<?php echo e($_SESSION['csrf_token']); ?>">
+              <input type="hidden" name="action" value="upload_hero_bg">
+              <div>
+                <label class="mb-2 block text-sm text-gray-300">Fond de la section Hero</label>
+                <input type="file" name="hero_bg" accept="image/jpeg,image/png,image/webp" required class="w-full rounded-lg bg-[#121212] border border-white/10 px-4 py-3 text-white outline-none focus:border-amber-400">
+                <p class="mt-2 text-xs text-gray-500">Le fichier sera converti et enregistré en <span class="text-amber-300">hero-bg.jpg</span>.</p>
+              </div>
+              <button class="rounded-lg bg-amber-400 px-4 py-3 font-semibold text-black hover:bg-amber-300">Mettre à jour le Hero</button>
+            </form>
+          </div>
+
+          <div class="rounded-2xl border border-white/10 bg-[#1A1A1A] p-6 shadow-lg">
+            <h2 class="text-2xl font-display text-amber-300">Ajouter une photo au carrousel</h2>
+            <form method="post" enctype="multipart/form-data" class="mt-6 space-y-4">
+              <input type="hidden" name="csrf_token" value="<?php echo e($_SESSION['csrf_token']); ?>">
+              <input type="hidden" name="action" value="upload_carousel_img">
+              <div>
+                <label class="mb-2 block text-sm text-gray-300">Sélectionner une photo</label>
+                <input type="file" name="carousel_img" accept="image/jpeg,image/png,image/webp" required class="w-full rounded-lg bg-[#121212] border border-white/10 px-4 py-3 text-white outline-none focus:border-amber-400">
+              </div>
+              <button class="rounded-lg bg-amber-400 px-4 py-3 font-semibold text-black hover:bg-amber-300">Ajouter la photo</button>
+            </form>
+          </div>
         </div>
-        <div class="rounded-2xl border border-white/10 bg-[#1A1A1A] p-6 shadow-lg">
-          <h3 class="text-xl font-display text-amber-300">Aperçu actuel</h3>
-          <div class="mt-4 overflow-hidden rounded-xl border border-white/10">
-            <img src="<?php echo e($heroBgImage); ?>" alt="Fond actuel du Hero" class="h-72 w-full object-cover">
+
+        <div class="space-y-6">
+          <div class="rounded-2xl border border-white/10 bg-[#1A1A1A] p-6 shadow-lg">
+            <h3 class="text-xl font-display text-amber-300">Aperçu du fond Hero</h3>
+            <div class="mt-4 overflow-hidden rounded-xl border border-white/10">
+              <img src="<?php echo e($heroBgImage); ?>" alt="Fond actuel du Hero" class="h-48 w-full object-cover">
+            </div>
+          </div>
+
+          <div class="rounded-2xl border border-white/10 bg-[#1A1A1A] p-6 shadow-lg">
+            <h3 class="text-xl font-display text-amber-300">Photos actuelles du carrousel</h3>
+            <div class="mt-4 grid grid-cols-2 gap-4">
+              <?php foreach ($carouselImages as $img): ?>
+                <div class="relative rounded-lg overflow-hidden border border-white/10 bg-black/40 group">
+                  <img src="<?php echo e($img); ?>" class="h-32 w-full object-cover">
+                  <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <form method="post" onsubmit="return confirm('Retirer cette photo ?');">
+                      <input type="hidden" name="csrf_token" value="<?php echo e($_SESSION['csrf_token']); ?>">
+                      <input type="hidden" name="action" value="delete_carousel_img">
+                      <input type="hidden" name="img_path" value="<?php echo e($img); ?>">
+                      <button class="rounded bg-red-600 px-3 py-1.5 text-xs text-white hover:bg-red-700">Retirer</button>
+                    </form>
+                  </div>
+                </div>
+              <?php endforeach; ?>
+              <?php if (empty($carouselImages)): ?>
+                <p class="col-span-2 text-sm text-gray-400">Aucune photo dans le carrousel.</p>
+              <?php endif; ?>
+            </div>
           </div>
         </div>
       </section>
@@ -709,6 +891,14 @@ $heroBgImage = config_value('hero_bg_image', '/assets/uploads/hero-bg.jpg');
             <input type="hidden" name="csrf_token" value="<?php echo e($_SESSION['csrf_token']); ?>">
             <input type="hidden" name="action" value="save_site_config">
             <div>
+              <label class="mb-2 block text-sm text-gray-300">Nom du site</label>
+              <input name="site_name" value="<?php echo e(config_value('site_name')); ?>" class="w-full rounded-lg bg-[#121212] border border-white/10 px-4 py-3 text-white outline-none focus:border-amber-400">
+            </div>
+            <div>
+              <label class="mb-2 block text-sm text-gray-300">Slogan / Tagline du site</label>
+              <input name="site_tagline" value="<?php echo e(config_value('site_tagline')); ?>" class="w-full rounded-lg bg-[#121212] border border-white/10 px-4 py-3 text-white outline-none focus:border-amber-400">
+            </div>
+            <div>
               <label class="mb-2 block text-sm text-gray-300">Titre Hero</label>
               <input name="hero_title" value="<?php echo e(config_value('hero_title')); ?>" class="w-full rounded-lg bg-[#121212] border border-white/10 px-4 py-3 text-white outline-none focus:border-amber-400">
             </div>
@@ -717,12 +907,28 @@ $heroBgImage = config_value('hero_bg_image', '/assets/uploads/hero-bg.jpg');
               <textarea name="hero_subtitle" rows="3" class="w-full rounded-lg bg-[#121212] border border-white/10 px-4 py-3 text-white outline-none focus:border-amber-400"><?php echo e(config_value('hero_subtitle')); ?></textarea>
             </div>
             <div>
+              <label class="mb-2 block text-sm text-gray-300">CTA Principal par défaut (Bouton principal)</label>
+              <input name="hero_cta_primary" value="<?php echo e(config_value('hero_cta_primary')); ?>" class="w-full rounded-lg bg-[#121212] border border-white/10 px-4 py-3 text-white outline-none focus:border-amber-400">
+            </div>
+            <div>
+              <label class="mb-2 block text-sm text-gray-300">CTA Secondaire (Bouton secondaire)</label>
+              <input name="hero_cta_secondary" value="<?php echo e(config_value('hero_cta_secondary')); ?>" class="w-full rounded-lg bg-[#121212] border border-white/10 px-4 py-3 text-white outline-none focus:border-amber-400">
+            </div>
+            <div>
               <label class="mb-2 block text-sm text-gray-300">Adresse</label>
               <input name="bar_adresse" value="<?php echo e(config_value('bar_adresse')); ?>" class="w-full rounded-lg bg-[#121212] border border-white/10 px-4 py-3 text-white outline-none focus:border-amber-400">
             </div>
             <div>
               <label class="mb-2 block text-sm text-gray-300">Téléphone</label>
               <input name="bar_telephone" value="<?php echo e(config_value('bar_telephone')); ?>" class="w-full rounded-lg bg-[#121212] border border-white/10 px-4 py-3 text-white outline-none focus:border-amber-400">
+            </div>
+            <div>
+              <label class="mb-2 block text-sm text-gray-300">Lien Privateaser</label>
+              <input name="booking_privateaser_url" value="<?php echo e(config_value('booking_privateaser_url')); ?>" class="w-full rounded-lg bg-[#121212] border border-white/10 px-4 py-3 text-white outline-none focus:border-amber-400">
+            </div>
+            <div>
+              <label class="mb-2 block text-sm text-gray-300">Lien MisterGoodBeer</label>
+              <input name="booking_mistergoodbeer_url" value="<?php echo e(config_value('booking_mistergoodbeer_url')); ?>" class="w-full rounded-lg bg-[#121212] border border-white/10 px-4 py-3 text-white outline-none focus:border-amber-400">
             </div>
             <div>
               <label class="mb-2 block text-sm text-gray-300">Lien Instagram</label>
@@ -749,11 +955,14 @@ $heroBgImage = config_value('hero_bg_image', '/assets/uploads/hero-bg.jpg');
         </div>
         <div class="rounded-2xl border border-white/10 bg-[#1A1A1A] p-6 shadow-lg space-y-4">
           <h3 class="text-xl font-display text-amber-300">Résumé actuel</h3>
-          <div class="rounded-lg bg-[#121212] p-4 text-sm text-gray-300">
-            <p><span class="text-amber-300">Hero:</span> <?php echo e(config_value('hero_title')); ?></p>
-            <p class="mt-2"><span class="text-amber-300">Sous-titre:</span> <?php echo e(config_value('hero_subtitle')); ?></p>
-            <p class="mt-2"><span class="text-amber-300">Adresse:</span> <?php echo e(config_value('bar_adresse')); ?></p>
-            <p class="mt-2"><span class="text-amber-300">Téléphone:</span> <?php echo e(config_value('bar_telephone')); ?></p>
+          <div class="rounded-lg bg-[#121212] p-4 text-sm text-gray-300 space-y-2">
+            <p><span class="text-amber-300">Nom du site :</span> <?php echo e(config_value('site_name')); ?></p>
+            <p><span class="text-amber-300">Slogan :</span> <?php echo e(config_value('site_tagline')); ?></p>
+            <p><span class="text-amber-300">Hero :</span> <?php echo e(config_value('hero_title')); ?></p>
+            <p><span class="text-amber-300">Adresse :</span> <?php echo e(config_value('bar_adresse')); ?></p>
+            <p><span class="text-amber-300">Téléphone :</span> <?php echo e(config_value('bar_telephone')); ?></p>
+            <p><span class="text-amber-300">Privateaser :</span> <a class="text-primary hover:underline text-xs" href="<?php echo e(config_value('booking_privateaser_url')); ?>" target="_blank"><?php echo e(config_value('booking_privateaser_url')); ?></a></p>
+            <p><span class="text-amber-300">MisterGoodBeer :</span> <a class="text-primary hover:underline text-xs" href="<?php echo e(config_value('booking_mistergoodbeer_url')); ?>" target="_blank"><?php echo e(config_value('booking_mistergoodbeer_url')); ?></a></p>
           </div>
         </div>
       </section>
@@ -840,10 +1049,161 @@ $heroBgImage = config_value('hero_bg_image', '/assets/uploads/hero-bg.jpg');
   </main>
 
   <script>
-    document.querySelectorAll('a[href*="tab="]').forEach(link => {
+     document.querySelectorAll('a[href*="tab="]').forEach(link => {
       link.addEventListener('click', () => {
         try { localStorage.setItem('gentleman-admin-tab', new URL(link.href).searchParams.get('tab') || 'matchs'); } catch (e) {}
       });
+    });
+
+    async function quickSearch(teamId) {
+      const statusDiv = document.getElementById('api-status');
+      const container = document.getElementById('matches-results-container');
+      const resultsBody = document.getElementById('matches-results-body');
+      const teamResults = document.getElementById('team-results');
+      
+      teamResults.classList.add('hidden');
+      statusDiv.classList.remove('hidden');
+      statusDiv.textContent = "Chargement des matchs de l'équipe...";
+      container.classList.add('hidden');
+      
+      try {
+        const res = await fetch(`https://www.thesportsdb.com/api/v1/json/3/eventsnext.php?id=${teamId}`);
+        const data = await res.json();
+        
+        if (!data || !data.events || data.events.length === 0) {
+          statusDiv.textContent = "Aucun match à venir trouvé pour cette équipe.";
+          return;
+        }
+        
+        statusDiv.classList.add('hidden');
+        container.classList.remove('hidden');
+        resultsBody.innerHTML = '';
+        
+        data.events.forEach(event => {
+          // Formatage de la date en ISO local
+          const dateStr = event.dateEvent + 'T' + (event.strTime || '00:00:00');
+          const dateObj = new Date(dateStr);
+          const formattedDate = dateObj.toLocaleDateString('fr-FR', {
+            day: '2-digit', month: '2-digit', year: 'numeric',
+            hour: '2-digit', minute: '2-digit'
+          });
+          
+          // Formater la date en SQL local YYYY-MM-DD HH:MM:SS
+          const pad = (n) => n.toString().padStart(2, '0');
+          const sqlDate = `${dateObj.getFullYear()}-${pad(dateObj.getMonth()+1)}-${pad(dateObj.getDate())} ${pad(dateObj.getHours())}:${pad(dateObj.getMinutes())}:00`;
+          
+          // Récupérer le logo du match
+          const imgUrl = event.strAwayTeamBadge || event.strHomeTeamBadge || '';
+          
+          const tr = document.createElement('tr');
+          tr.className = 'border-b border-white/5 hover:bg-white/5 transition-colors align-middle';
+          tr.innerHTML = `
+            <td class="px-4 py-4">
+              <div class="flex items-center gap-3">
+                ${imgUrl ? `<img src="${imgUrl}" class="h-8 w-8 object-contain" />` : ''}
+                <div>
+                  <span class="font-semibold text-white">${event.strHomeTeam}</span>
+                  <span class="text-gray-500 mx-1">vs</span>
+                  <span class="font-semibold text-white">${event.strAwayTeam}</span>
+                </div>
+              </div>
+            </td>
+            <td class="px-4 py-4">
+              <div class="text-white text-sm font-semibold">${event.strLeague || 'Match Amical'}</div>
+              <div class="text-gray-400 text-xs mt-0.5">${formattedDate}</div>
+            </td>
+            <td class="px-4 py-4 text-right">
+              <div class="flex justify-end gap-2">
+                <form method="post" style="display:inline-block">
+                  <input type="hidden" name="csrf_token" value="<?php echo e($_SESSION['csrf_token']); ?>">
+                  <input type="hidden" name="action" value="import_match_api">
+                  <input type="hidden" name="equipe_1" value="${event.strHomeTeam}">
+                  <input type="hidden" name="equipe_2" value="${event.strAwayTeam}">
+                  <input type="hidden" name="competition" value="${event.strLeague || 'Football'}">
+                  <input type="hidden" name="date_match" value="${sqlDate}">
+                  <input type="hidden" name="image_path" value="${imgUrl}">
+                  <button type="submit" class="rounded bg-white/5 border border-white/10 px-3 py-1.5 text-xs text-gray-200 hover:bg-amber-400 hover:text-black transition-colors font-medium">Importer & Diffuser</button>
+                </form>
+                <form method="post" style="display:inline-block">
+                  <input type="hidden" name="csrf_token" value="<?php echo e($_SESSION['csrf_token']); ?>">
+                  <input type="hidden" name="action" value="import_match_api">
+                  <input type="hidden" name="equipe_1" value="${event.strHomeTeam}">
+                  <input type="hidden" name="equipe_2" value="${event.strAwayTeam}">
+                  <input type="hidden" name="competition" value="${event.strLeague || 'Football'}">
+                  <input type="hidden" name="date_match" value="${sqlDate}">
+                  <input type="hidden" name="image_path" value="${imgUrl}">
+                  <input type="hidden" name="is_featured" value="1">
+                  <button type="submit" class="rounded bg-amber-400 px-3 py-1.5 text-xs text-black hover:bg-amber-300 transition-colors font-semibold">★ Importer & Mettre à l'affiche</button>
+                </form>
+              </div>
+            </td>
+          `;
+          resultsBody.appendChild(tr);
+        });
+      } catch (err) {
+        statusDiv.textContent = "Erreur de connexion à l'API.";
+        console.error(err);
+      }
+    }
+
+    async function searchTeam() {
+      const query = document.getElementById('api-search-input').value.trim();
+      const statusDiv = document.getElementById('api-status');
+      const teamResults = document.getElementById('team-results');
+      const container = document.getElementById('matches-results-container');
+      
+      if (!query) return;
+      
+      statusDiv.classList.remove('hidden');
+      statusDiv.textContent = "Recherche de l'équipe...";
+      teamResults.classList.add('hidden');
+      container.classList.add('hidden');
+      
+      try {
+        const res = await fetch(`https://www.thesportsdb.com/api/v1/json/3/searchteams.php?t=${encodeURIComponent(query)}`);
+        const data = await res.json();
+        
+        if (!data || !data.teams || data.teams.length === 0) {
+          statusDiv.textContent = "Aucune équipe correspondante trouvée.";
+          return;
+        }
+        
+        statusDiv.classList.add('hidden');
+        teamResults.classList.remove('hidden');
+        teamResults.innerHTML = '';
+        
+        data.teams.slice(0, 10).forEach(team => {
+          if (team.strSport !== 'Soccer') return;
+          
+          const div = document.createElement('button');
+          div.type = 'button';
+          div.onclick = () => quickSearch(team.idTeam);
+          div.className = 'flex flex-col items-center justify-center p-3 rounded-xl border border-white/10 bg-white/5 hover:border-amber-400/50 hover:bg-white/10 transition-all text-center';
+          div.innerHTML = `
+            ${team.strTeamBadge ? `<img src="${team.strTeamBadge}" class="h-12 w-12 object-contain mb-2" />` : ''}
+            <span class="text-xs font-semibold text-white truncate w-full">${team.strTeam}</span>
+            <span class="text-[9px] text-gray-500 mt-0.5">${team.strCountry}</span>
+          `;
+          teamResults.appendChild(div);
+        });
+        
+        if (teamResults.children.length === 0) {
+          statusDiv.classList.remove('hidden');
+          statusDiv.textContent = "Aucune équipe de football trouvée.";
+          teamResults.classList.add('hidden');
+        }
+      } catch (err) {
+        statusDiv.textContent = "Erreur lors de la recherche.";
+        console.error(err);
+      }
+    }
+
+    // Trigger search on Enter key
+    document.getElementById('api-search-input').addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        searchTeam();
+      }
     });
   </script>
 </body>
