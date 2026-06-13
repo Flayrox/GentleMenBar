@@ -52,79 +52,7 @@ function require_csrf(): void
     }
 }
 
-function slugify(string $value): string
-{
-    $value = trim($value);
-    $transliterated = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $value);
-    if ($transliterated !== false) {
-        $value = $transliterated;
-    }
-    $value = strtolower($value);
-    $value = preg_replace('/[^a-z0-9]+/i', '-', $value) ?? '';
-    $value = trim($value, '-');
-    return $value !== '' ? $value : 'match';
-}
 
-  function apply_slug_synonyms(string $value): string
-  {
-    $normalized = trim($value);
-    $synonyms = [
-      '/\b(paris\s*saint[\s-]*germain|paris\s+sg|paris)\b/i' => 'psg',
-      '/\b(olympique\s+de\s+marseille|marseille)\b/i' => 'om',
-    ];
-
-    foreach ($synonyms as $pattern => $replacement) {
-      $normalized = preg_replace($pattern, $replacement, $normalized) ?? $normalized;
-    }
-
-    return $normalized;
-  }
-
-  function sanitize_custom_slug(string $slug): string
-  {
-    return slugify($slug);
-  }
-
-  function generate_unique_match_slug(PDO $pdo, string $equipe1, string $equipe2, string $dateMatch, string $customSlug = '', int $ignoreId = 0): string
-{
-    if ($customSlug !== '') {
-      $candidate = sanitize_custom_slug($customSlug);
-      $stmt = $pdo->prepare('SELECT COUNT(*) FROM matchs WHERE slug = :slug' . ($ignoreId > 0 ? ' AND id != :ignore_id' : ''));
-      $params = [':slug' => $candidate];
-      if ($ignoreId > 0) {
-        $params[':ignore_id'] = $ignoreId;
-      }
-      $stmt->execute($params);
-      if ((int)$stmt->fetchColumn() === 0) {
-        return $candidate;
-      }
-    }
-
-    $year = (new DateTimeImmutable($dateMatch, new DateTimeZone('Europe/Paris')))->format('Y');
-    $team1 = apply_slug_synonyms($equipe1);
-    $team2 = apply_slug_synonyms($equipe2);
-    $base = slugify($team1 . ' ' . $team2 . ' ' . $year);
-    $slug = $base;
-    $index = 2;
-
-    while (true) {
-      $sql = 'SELECT COUNT(*) FROM matchs WHERE slug = :slug';
-      if ($ignoreId > 0) {
-        $sql .= ' AND id != :ignore_id';
-      }
-      $stmt = $pdo->prepare($sql);
-      $params = [':slug' => $slug];
-      if ($ignoreId > 0) {
-        $params[':ignore_id'] = $ignoreId;
-      }
-      $stmt->execute($params);
-        if ((int)$stmt->fetchColumn() === 0) {
-            return $slug;
-        }
-        $slug = $base . '-' . $index;
-        $index++;
-    }
-}
 
 function normalize_datetime_input(string $input): ?string
 {

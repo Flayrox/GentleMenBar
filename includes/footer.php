@@ -111,6 +111,22 @@ $privacyLabel = config_value('footer_privacy_label', 'Espace Privé');
     </div>
 </footer>
 
+<script>
+// Importateur automatique silencieux de matchs (s'exécute en arrière-plan)
+(function() {
+    if (window.requestIdleCallback) {
+        window.requestIdleCallback(function() {
+            fetch('/api/auto-import.php').catch(function(err) { console.warn('Auto-import error:', err); });
+        });
+    } else {
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                fetch('/api/auto-import.php').catch(function(err) { console.warn('Auto-import error:', err); });
+            }, 1000);
+        });
+    }
+})();
+</script>
 </body>
 </html>
 

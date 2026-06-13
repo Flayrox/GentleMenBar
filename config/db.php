@@ -135,14 +135,15 @@ function auto_update_past_scores(PDO $pdo): void
             return;
         }
 
+        $apiKey = config_value('sportsdb_api_key', '3');
         $eventId = $match['api_event_id'];
         $ctx = stream_context_create([
             'http' => [
-                'timeout' => 1.5, // Timeout court de 1.5s pour ne jamais figer la page
+                'timeout' => 2.0, // Timeout court pour ne jamais figer la page
             ]
         ]);
 
-        $url = "https://www.thesportsdb.com/api/v1/json/3/lookupevent.php?id=" . urlencode($eventId);
+        $url = "https://www.thesportsdb.com/api/v1/json/" . urlencode($apiKey) . "/lookupevent.php?id=" . urlencode($eventId);
         $response = @file_get_contents($url, false, $ctx);
         if ($response === false) {
             return;
@@ -153,15 +154,21 @@ function auto_update_past_scores(PDO $pdo): void
             $event = $data['events'][0];
             $score1 = $event['intHomeScore'];
             $score2 = $event['intAwayScore'];
+            $status = $event['strStatus'] ?? '';
+            $isFinished = ($status === 'FT' || $status === 'Match Finished');
+            $isLive = in_array($status, ['1H', '2H', 'HT', 'Live', 'In Progress'], true);
+            $progress = isset($event['strProgress']) ? (int)$event['strProgress'] : null;
             
             if ($score1 !== null && $score2 !== null) {
-                $upStmt = $pdo->prepare("UPDATE matchs SET score_equipe_1 = :s1, score_equipe_2 = :s2, statut = 'finished' WHERE id = :id");
+                $upStmt = $pdo->prepare("UPDATE matchs SET score_equipe_1 = :s1, score_equipe_2 = :s2, statut = :statut, minute_actuelle = :min WHERE id = :id");
                 $upStmt->execute([
                     ':s1' => (int)$score1,
                     ':s2' => (int)$score2,
+                    ':statut' => $isFinished ? 'finished' : ($isLive ? 'live' : 'scheduled'),
+                    ':min' => $progress,
                     ':id' => (int)$match['id']
                 ]);
-            } elseif (($event['strStatus'] ?? '') === 'FT') {
+            } elseif ($isFinished) {
                 // Si le match est marqué terminé sur l'API mais sans scores, on évite de tourner en boucle
                 $upStmt = $pdo->prepare("UPDATE matchs SET statut = 'finished' WHERE id = :id");
                 $upStmt->execute([':id' => (int)$match['id']]);
@@ -174,4 +181,78 @@ function auto_update_past_scores(PDO $pdo): void
 
 // Lancement de l'auto-score
 auto_update_past_scores($pdo);
+
+function slugify(string $value): string
+{
+    $value = trim($value);
+    $transliterated = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $value);
+    if ($transliterated !== false) {
+        $value = $transliterated;
+    }
+    $value = strtolower($value);
+    $value = preg_replace('/[^a-z0-9]+/i', '-', $value) ?? '';
+    $value = trim($value, '-');
+    return $value !== '' ? $value : 'match';
+}
+
+function apply_slug_synonyms(string $value): string
+{
+    $normalized = trim($value);
+    $synonyms = [
+      '/\b(paris\s*saint[\s-]*germain|paris\s+sg|paris)\b/i' => 'psg',
+      '/\b(olympique\s+de\s+marseille|marseille)\b/i' => 'om',
+    ];
+
+    foreach ($synonyms as $pattern => $replacement) {
+      $normalized = preg_replace($pattern, $replacement, $normalized) ?? $normalized;
+    }
+
+    return $normalized;
+}
+
+function sanitize_custom_slug(string $slug): string
+{
+    return slugify($slug);
+}
+
+function generate_unique_match_slug(PDO $pdo, string $equipe1, string $equipe2, string $dateMatch, string $customSlug = '', int $ignoreId = 0): string
+{
+    if ($customSlug !== '') {
+      $candidate = sanitize_custom_slug($customSlug);
+      $stmt = $pdo->prepare('SELECT COUNT(*) FROM matchs WHERE slug = :slug' . ($ignoreId > 0 ? ' AND id != :ignore_id' : ''));
+      $params = [':slug' => $candidate];
+      if ($ignoreId > 0) {
+        $params[':ignore_id'] = $ignoreId;
+      }
+      $stmt->execute($params);
+      if ((int)$stmt->fetchColumn() === 0) {
+        return $candidate;
+      }
+    }
+
+    $year = (new DateTimeImmutable($dateMatch, new DateTimeZone('Europe/Paris')))->format('Y');
+    $team1 = apply_slug_synonyms($equipe1);
+    $team2 = apply_slug_synonyms($equipe2);
+    $base = slugify($team1 . ' ' . $team2 . ' ' . $year);
+    $slug = $base;
+    $index = 2;
+
+    while (true) {
+      $sql = 'SELECT COUNT(*) FROM matchs WHERE slug = :slug';
+      if ($ignoreId > 0) {
+        $sql .= ' AND id != :ignore_id';
+      }
+      $stmt = $pdo->prepare($sql);
+      $params = [':slug' => $slug];
+      if ($ignoreId > 0) {
+        $params[':ignore_id'] = $ignoreId;
+      }
+      $stmt->execute($params);
+        if ((int)$stmt->fetchColumn() === 0) {
+            return $slug;
+        }
+        $slug = $base . '-' . $index;
+        $index++;
+    }
+}
 
