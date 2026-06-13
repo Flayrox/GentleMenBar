@@ -66,13 +66,69 @@ echo "<script type=\"application/ld+json\">" . json_encode($event, JSON_UNESCAPE
 ?>
 <div class="max-w-4xl mx-auto p-8">
   <article class="bg-[#121212] rounded-xl p-6 shadow-lg">
-    <div class="mb-6 overflow-hidden rounded-xl border border-white/10 bg-black/20">
-      <img src="<?php echo e($matchImage); ?>" alt="Affiche du match <?php echo e($e1 . ' contre ' . $e2); ?>" class="h-72 w-full object-cover">
-    </div>
-    <header class="flex items-center justify-between">
-      <h1 class="text-3xl font-display text-amber-300"><?php echo e($e1); ?> <span class="text-gray-200">vs</span> <?php echo e($e2); ?></h1>
-      <div class="text-sm text-gray-300"><?php echo e($date->format('d/m/Y')); ?> — <?php echo e($date->format('H:i')); ?></div>
+    <header class="flex flex-wrap items-center justify-between gap-4 mb-6">
+      <div class="flex items-center gap-3">
+        <h1 class="text-3xl font-display text-amber-300"><?php echo e($e1); ?> <span class="text-gray-200">vs</span> <?php echo e($e2); ?></h1>
+        <?php 
+          $badge = get_match_status_badge($match);
+          $isLive = is_match_live($match);
+          if ($isLive):
+        ?>
+          <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-semibold uppercase animate-pulse border border-emerald-500/20">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span>
+            <?php echo e($badge); ?>
+          </span>
+        <?php elseif ($badge === 'FINISHED'): ?>
+          <span class="inline-flex items-center px-2.5 py-1 rounded-full bg-white/5 text-gray-400 text-xs font-semibold uppercase border border-white/10">
+            <?php echo e($badge); ?>
+          </span>
+        <?php else: ?>
+          <span class="inline-flex items-center px-2.5 py-1 rounded-full bg-amber-400/10 text-amber-300 text-xs font-semibold uppercase border border-amber-400/20">
+            <?php echo e($badge); ?>
+          </span>
+        <?php endif; ?>
+      </div>
+      <div class="text-sm text-gray-400"><?php echo e($date->format('d/m/Y')); ?> — <?php echo e($date->format('H:i')); ?></div>
     </header>
+
+    <div class="mb-8 overflow-hidden rounded-xl border border-white/10 bg-[#1A1A1A] p-8 md:p-12 shadow-[inset_0_0_30px_rgba(212,175,55,0.05)] relative flex flex-col md:flex-row items-center justify-between gap-8 bg-cover bg-center" style="background-image: linear-gradient(rgba(18,18,18,0.95), rgba(18,18,18,0.92)), url('/assets/uploads/hero-bg.jpg');">
+      <!-- Team 1 -->
+      <div class="flex flex-col items-center text-center flex-1">
+        <?php if (!empty($match['image_path'])): ?>
+          <img src="<?php echo e($match['image_path']); ?>" alt="<?php echo e($e1); ?> logo" class="h-28 w-28 object-contain drop-shadow-[0_0_15px_rgba(212,175,55,0.3)] bg-black/30 p-2 rounded-2xl border border-white/10 transition-transform hover:scale-105 duration-300">
+        <?php else: ?>
+          <div class="h-28 w-28 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-3xl text-gray-500 font-bold">H</div>
+        <?php endif; ?>
+        <div class="text-2xl font-display text-white mt-4 font-bold tracking-wide"><?php echo e($e1); ?></div>
+      </div>
+
+      <!-- VS / Score -->
+      <div class="flex flex-col items-center justify-center flex-shrink-0 min-w-[120px]">
+        <?php 
+          $score = format_score($match['score_equipe_1'] ?? null, $match['score_equipe_2'] ?? null);
+          if ($score):
+        ?>
+          <div class="text-4xl md:text-5xl font-display text-amber-300 font-extrabold tracking-widest bg-black/40 px-6 py-3 rounded-xl border border-white/10 drop-shadow-[0_0_10px_rgba(212,175,55,0.2)]">
+            <?php echo e($score); ?>
+          </div>
+        <?php else: ?>
+          <div class="text-4xl font-display text-gray-400 font-bold bg-white/5 px-6 py-3 rounded-full border border-white/5">
+            VS
+          </div>
+        <?php endif; ?>
+        <span class="text-xs text-gray-500 uppercase tracking-widest mt-3"><?php echo e($match['competition'] ?: 'Événement'); ?></span>
+      </div>
+
+      <!-- Team 2 -->
+      <div class="flex flex-col items-center text-center flex-1">
+        <?php if (!empty($match['image_path_away'])): ?>
+          <img src="<?php echo e($match['image_path_away']); ?>" alt="<?php echo e($e2); ?> logo" class="h-28 w-28 object-contain drop-shadow-[0_0_15px_rgba(212,175,55,0.3)] bg-black/30 p-2 rounded-2xl border border-white/10 transition-transform hover:scale-105 duration-300">
+        <?php else: ?>
+          <div class="h-28 w-28 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-3xl text-gray-500 font-bold">A</div>
+        <?php endif; ?>
+        <div class="text-2xl font-display text-white mt-4 font-bold tracking-wide"><?php echo e($e2); ?></div>
+      </div>
+    </div>
     <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
       <div class="col-span-2">
         <p class="text-gray-200">Competition: <?php echo e($match['competition']); ?></p>

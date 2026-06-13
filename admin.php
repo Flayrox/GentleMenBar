@@ -266,78 +266,15 @@ if (is_admin_authenticated() && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = (string)($_POST['action'] ?? '');
 
     try {
-      if ($action === 'save_match') {
-        $matchId = (int)($_POST['match_id'] ?? 0);
-            $equipe1 = trim((string)($_POST['equipe_1'] ?? ''));
-            $equipe2 = trim((string)($_POST['equipe_2'] ?? ''));
-            $competition = trim((string)($_POST['competition'] ?? ''));
-            $dateInput = trim((string)($_POST['date_match'] ?? ''));
-        $customSlug = trim((string)($_POST['slug_seo'] ?? ''));
-        $score1 = $_POST['score_equipe_1'] !== '' ? (int)($_POST['score_equipe_1'] ?? 0) : null;
-        $score2 = $_POST['score_equipe_2'] !== '' ? (int)($_POST['score_equipe_2'] ?? 0) : null;
-        $minute = $_POST['minute_actuelle'] !== '' ? (int)($_POST['minute_actuelle'] ?? 0) : null;
-        $statut = trim((string)($_POST['statut'] ?? 'scheduled'));
-            $dateMatch = normalize_datetime_input($dateInput);
-
-            if ($equipe1 === '' || $equipe2 === '' || !$dateMatch) {
-                throw new RuntimeException('Veuillez remplir les champs obligatoires avec une date valide.');
-            }
-
-        $slug = generate_unique_match_slug($pdo, $equipe1, $equipe2, $dateMatch, $customSlug, $matchId);
-        if (!empty($_FILES['match_image']['name'])) {
-          $imagePath = upload_image_to_jpeg($_FILES['match_image'], $slug);
-        } else {
-          $imagePath = $matchId > 0 ? (string)($editMatch['image_path'] ?? '') : null;
-        }
-
-        $isFeatured = isset($_POST['is_featured']) ? 1 : 0;
-        if ($isFeatured === 1) {
-            $pdo->exec('UPDATE `matchs` SET `is_featured` = 0');
-        }
-
-        if ($matchId > 0) {
-          $stmt = $pdo->prepare('UPDATE matchs SET slug = :slug, equipe_1 = :equipe_1, equipe_2 = :equipe_2, competition = :competition, date_match = :date_match, image_path = :image_path, score_equipe_1 = :score_equipe_1, score_equipe_2 = :score_equipe_2, minute_actuelle = :minute_actuelle, statut = :statut, is_featured = :is_featured WHERE id = :id');
-          $stmt->execute([
-            ':slug' => $slug,
-            ':equipe_1' => $equipe1,
-            ':equipe_2' => $equipe2,
-            ':competition' => $competition,
-            ':date_match' => $dateMatch,
-            ':image_path' => $imagePath,
-            ':score_equipe_1' => $score1,
-            ':score_equipe_2' => $score2,
-            ':minute_actuelle' => $minute,
-            ':statut' => $statut,
-            ':is_featured' => $isFeatured,
-            ':id' => $matchId,
-          ]);
-          set_flash('success', 'Match mis à jour avec le slug ' . $slug . '.');
-        } else {
-          $stmt = $pdo->prepare('INSERT INTO matchs (slug, equipe_1, equipe_2, competition, date_match, image_path, score_equipe_1, score_equipe_2, minute_actuelle, statut, is_active, is_featured) VALUES (:slug, :equipe_1, :equipe_2, :competition, :date_match, :image_path, :score_equipe_1, :score_equipe_2, :minute_actuelle, :statut, 1, :is_featured)');
-          $stmt->execute([
-            ':slug' => $slug,
-            ':equipe_1' => $equipe1,
-            ':equipe_2' => $equipe2,
-            ':competition' => $competition,
-            ':date_match' => $dateMatch,
-            ':image_path' => $imagePath,
-            ':score_equipe_1' => $score1,
-            ':score_equipe_2' => $score2,
-            ':minute_actuelle' => $minute,
-            ':statut' => $statut,
-            ':is_featured' => $isFeatured,
-          ]);
-          set_flash('success', 'Match ajouté avec le slug ' . $slug . '.');
-        }
-            redirect_admin('matchs');
-        }
-
       if ($action === 'import_match_api') {
         $equipe1 = trim((string)($_POST['equipe_1'] ?? ''));
         $equipe2 = trim((string)($_POST['equipe_2'] ?? ''));
         $competition = trim((string)($_POST['competition'] ?? ''));
         $dateMatch = trim((string)($_POST['date_match'] ?? ''));
-        $imagePath = trim((string)($_POST['image_path'] ?? ''));
+        $imagePathHome = trim((string)($_POST['image_path_home'] ?? ''));
+        $imagePathAway = trim((string)($_POST['image_path_away'] ?? ''));
+        $sport = trim((string)($_POST['sport'] ?? 'Soccer'));
+        $apiEventId = trim((string)($_POST['api_event_id'] ?? ''));
         $isFeatured = isset($_POST['is_featured']) ? 1 : 0;
 
         if ($equipe1 === '' || $equipe2 === '' || $dateMatch === '') {
@@ -350,18 +287,123 @@ if (is_admin_authenticated() && $_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $slug = generate_unique_match_slug($pdo, $equipe1, $equipe2, $dateMatch);
 
-        $stmt = $pdo->prepare('INSERT INTO matchs (slug, equipe_1, equipe_2, competition, date_match, image_path, statut, is_active, is_featured) VALUES (:slug, :equipe_1, :equipe_2, :competition, :date_match, :image_path, \'scheduled\', 1, :is_featured)');
+        $stmt = $pdo->prepare('INSERT INTO matchs (slug, equipe_1, equipe_2, competition, date_match, image_path, image_path_away, sport, api_event_id, statut, is_active, is_featured) 
+            VALUES (:slug, :equipe_1, :equipe_2, :competition, :date_match, :image_path_home, :image_path_away, :sport, :api_event_id, \'scheduled\', 1, :is_featured) 
+            ON DUPLICATE KEY UPDATE is_active = 1, is_featured = VALUES(is_featured), date_match = VALUES(date_match), image_path = VALUES(image_path), image_path_away = VALUES(image_path_away)');
         $stmt->execute([
             ':slug' => $slug,
             ':equipe_1' => $equipe1,
             ':equipe_2' => $equipe2,
             ':competition' => $competition,
             ':date_match' => $dateMatch,
-            ':image_path' => $imagePath !== '' ? $imagePath : null,
+            ':image_path_home' => $imagePathHome !== '' ? $imagePathHome : null,
+            ':image_path_away' => $imagePathAway !== '' ? $imagePathAway : null,
+            ':sport' => $sport,
+            ':api_event_id' => $apiEventId !== '' ? $apiEventId : null,
             ':is_featured' => $isFeatured,
         ]);
 
         set_flash('success', 'Match "' . $equipe1 . ' vs ' . $equipe2 . '" importé avec succès !');
+        redirect_admin('matchs');
+      }
+
+      if ($action === 'set_featured_match') {
+        $id = (int)($_POST['id'] ?? 0);
+        $pdo->exec('UPDATE matchs SET is_featured = 0');
+        $stmt = $pdo->prepare('UPDATE matchs SET is_featured = 1 WHERE id = :id');
+        $stmt->execute([':id' => $id]);
+        set_flash('success', 'Match mis en vedette à l\'affiche.');
+        redirect_admin('matchs');
+      }
+
+      if ($action === 'remove_featured_match') {
+        $id = (int)($_POST['id'] ?? 0);
+        $stmt = $pdo->prepare('UPDATE matchs SET is_featured = 0 WHERE id = :id');
+        $stmt->execute([':id' => $id]);
+        set_flash('success', 'Match retiré de l\'affiche.');
+        redirect_admin('matchs');
+      }
+
+      if ($action === 'bulk_sync_matchs') {
+        $fixturesJson = $_POST['fixtures_json'] ?? '[]';
+        $fixtures = json_decode($fixturesJson, true) ?: [];
+
+        if (empty($fixtures)) {
+            throw new RuntimeException('Aucun match sélectionné pour la synchronisation.');
+        }
+
+        $importedCount = 0;
+        foreach ($fixtures as $fix) {
+            $equipe1 = trim((string)($fix['equipe_1'] ?? ''));
+            $equipe2 = trim((string)($fix['equipe_2'] ?? ''));
+            $competition = trim((string)($fix['competition'] ?? ''));
+            $dateMatch = trim((string)($fix['date_match'] ?? ''));
+            $imagePathHome = trim((string)($fix['image_path_home'] ?? ''));
+            $imagePathAway = trim((string)($fix['image_path_away'] ?? ''));
+            $sport = trim((string)($fix['sport'] ?? 'Soccer'));
+            $apiEventId = trim((string)($fix['api_event_id'] ?? ''));
+
+            if ($equipe1 === '' || $equipe2 === '' || $dateMatch === '') {
+                continue;
+            }
+
+            $exists = false;
+            if ($apiEventId !== '') {
+                $checkStmt = $pdo->prepare('SELECT COUNT(*) FROM matchs WHERE api_event_id = :api_event_id');
+                $checkStmt->execute([':api_event_id' => $apiEventId]);
+                if ((int)$checkStmt->fetchColumn() > 0) {
+                    $exists = true;
+                }
+            }
+
+            if (!$exists) {
+                $dayStart = date('Y-m-d 00:00:00', strtotime($dateMatch));
+                $dayEnd = date('Y-m-d 23:59:59', strtotime($dateMatch));
+                $checkStmt = $pdo->prepare('SELECT COUNT(*) FROM matchs WHERE equipe_1 = :e1 AND equipe_2 = :e2 AND date_match BETWEEN :dstart AND :dend');
+                $checkStmt->execute([
+                    ':e1' => $equipe1,
+                    ':e2' => $equipe2,
+                    ':dstart' => $dayStart,
+                    ':dend' => $dayEnd,
+                ]);
+                if ((int)$checkStmt->fetchColumn() > 0) {
+                    $exists = true;
+                }
+            }
+
+            if ($exists) {
+                if ($apiEventId !== '') {
+                    $updateStmt = $pdo->prepare('UPDATE matchs SET date_match = :date_match, image_path = :image_path_home, image_path_away = :image_path_away, competition = :competition, sport = :sport WHERE api_event_id = :api_event_id');
+                    $updateStmt->execute([
+                        ':date_match' => $dateMatch,
+                        ':image_path_home' => $imagePathHome !== '' ? $imagePathHome : null,
+                        ':image_path_away' => $imagePathAway !== '' ? $imagePathAway : null,
+                        ':competition' => $competition,
+                        ':sport' => $sport,
+                        ':api_event_id' => $apiEventId,
+                    ]);
+                }
+                continue;
+            }
+
+            $slug = generate_unique_match_slug($pdo, $equipe1, $equipe2, $dateMatch);
+
+            $insertStmt = $pdo->prepare('INSERT INTO matchs (slug, equipe_1, equipe_2, competition, date_match, image_path, image_path_away, sport, api_event_id, statut, is_active) VALUES (:slug, :equipe_1, :equipe_2, :competition, :date_match, :image_path_home, :image_path_away, :sport, :api_event_id, \'scheduled\', 1)');
+            $insertStmt->execute([
+                ':slug' => $slug,
+                ':equipe_1' => $equipe1,
+                ':equipe_2' => $equipe2,
+                ':competition' => $competition,
+                ':date_match' => $dateMatch,
+                ':image_path_home' => $imagePathHome !== '' ? $imagePathHome : null,
+                ':image_path_away' => $imagePathAway !== '' ? $imagePathAway : null,
+                ':sport' => $sport,
+                ':api_event_id' => $apiEventId !== '' ? $apiEventId : null,
+            ]);
+            $importedCount++;
+        }
+
+        set_flash('success', $importedCount . ' match(s) synchronisé(s) et ajouté(s) à la programmation !');
         redirect_admin('matchs');
       }
 
@@ -382,6 +424,7 @@ if (is_admin_authenticated() && $_SERVER['REQUEST_METHOD'] === 'POST') {
           'horaires_semaine' => trim((string)($_POST['horaires_semaine'] ?? '')),
           'horaires_weekend' => trim((string)($_POST['horaires_weekend'] ?? '')),
           'horaires_dimanche' => trim((string)($_POST['horaires_dimanche'] ?? '')),
+          'sportsdb_api_key' => trim((string)($_POST['sportsdb_api_key'] ?? '')),
         ]);
 
         $flashConfig = [
@@ -400,6 +443,7 @@ if (is_admin_authenticated() && $_SERVER['REQUEST_METHOD'] === 'POST') {
           'horaires_semaine' => trim((string)($_POST['horaires_semaine'] ?? '')),
           'horaires_weekend' => trim((string)($_POST['horaires_weekend'] ?? '')),
           'horaires_dimanche' => trim((string)($_POST['horaires_dimanche'] ?? '')),
+          'sportsdb_api_key' => trim((string)($_POST['sportsdb_api_key'] ?? '')),
         ];
         foreach ($flashConfig as $key => $value) {
           $config[$key] = $value;
@@ -651,173 +695,272 @@ $heroBgImage = config_value('hero_bg_image', '/assets/uploads/hero-bg.jpg');
     <?php if ($tab === 'matchs'): ?>
       <!-- API Import Section -->
       <div class="mb-8 rounded-2xl border border-white/10 bg-[#1A1A1A] p-6 shadow-lg">
-        <div class="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 pb-4">
+        <div class="border-b border-white/10 pb-4 flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h2 class="text-2xl font-display text-amber-300">Recherche & Importation de Matchs (API de Sport)</h2>
-            <p class="text-xs text-gray-400 mt-1">Recherchez les prochains matchs de vos équipes préférées et importez-les en un clic.</p>
+            <h2 class="text-2xl font-display text-amber-300 flex items-center gap-2">Smart Fixtures Feed ⭐</h2>
+            <p class="text-xs text-gray-400 mt-1">Les prochains grands matchs de foot (Ligue 1, Ligue des Champions, Coupe du Monde) et rugby (Top 14, 6 Nations) sont pré-sélectionnés. Modifiez et validez.</p>
           </div>
-          <div class="flex flex-wrap gap-2">
-            <button type="button" onclick="quickSearch('133714')" class="rounded-full bg-white/5 border border-white/10 px-3 py-1.5 text-xs hover:bg-amber-400 hover:text-black transition-colors">PSG 🔴🔵</button>
-            <button type="button" onclick="quickSearch('133707')" class="rounded-full bg-white/5 border border-white/10 px-3 py-1.5 text-xs hover:bg-amber-400 hover:text-black transition-colors">Marseille 🔵⚪</button>
-            <button type="button" onclick="quickSearch('134989')" class="rounded-full bg-white/5 border border-white/10 px-3 py-1.5 text-xs hover:bg-amber-400 hover:text-black transition-colors">France 🇫🇷</button>
-            <button type="button" onclick="quickSearch('133739')" class="rounded-full bg-white/5 border border-white/10 px-3 py-1.5 text-xs hover:bg-amber-400 hover:text-black transition-colors">Real Madrid ⚪</button>
-            <button type="button" onclick="quickSearch('133738')" class="rounded-full bg-white/5 border border-white/10 px-3 py-1.5 text-xs hover:bg-amber-400 hover:text-black transition-colors">Barcelone 🔴🔵</button>
+          <div>
+            <form id="bulk-sync-form" method="post" onsubmit="submitBulkSync(event)">
+              <input type="hidden" name="csrf_token" value="<?php echo e($_SESSION['csrf_token']); ?>">
+              <input type="hidden" name="action" value="bulk_sync_matchs">
+              <input type="hidden" name="fixtures_json" id="fixtures-json-input" value="[]">
+              <button type="submit" id="bulk-sync-btn" disabled class="rounded-lg bg-gray-600 px-5 py-3 font-semibold text-gray-400 text-sm transition-all cursor-not-allowed">
+                Synchroniser la sélection (<span id="selected-count">0</span> match(s))
+              </button>
+            </form>
           </div>
         </div>
-        
-        <div class="mt-6 flex gap-3">
-          <input type="text" id="api-search-input" placeholder="Rechercher une autre équipe (ex: Lyon, Arsenal, Monaco...)" class="flex-1 rounded-lg bg-[#121212] border border-white/10 px-4 py-3 text-white outline-none focus:border-amber-400 text-sm">
-          <button type="button" onclick="searchTeam()" class="rounded-lg bg-amber-400 px-6 py-3 font-semibold text-black hover:bg-amber-300 text-sm transition-colors">Rechercher</button>
+
+        <!-- Feed Loader & Table -->
+        <div id="smart-feed-status" class="py-8 text-center text-sm text-gray-400 bg-black/20 rounded-xl mt-4">
+          <span class="inline-block animate-pulse">Chargement intelligent des flux de match (Ligue 1, Top 14, Champions League...)</span>
         </div>
 
-        <!-- Team Results -->
-        <div id="team-results" class="mt-4 hidden grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-3"></div>
+        <div id="smart-feed-container" class="mt-6 hidden space-y-8">
+          <!-- Football Table -->
+          <div class="space-y-3">
+            <h3 class="text-lg font-display text-amber-300 flex items-center gap-2">⚽ Football</h3>
+            <div class="overflow-x-auto rounded-xl border border-white/10 bg-[#121212]">
+              <table class="w-full text-left text-sm">
+                <thead class="text-xs text-gray-400 uppercase bg-white/5 border-b border-white/10">
+                  <tr>
+                    <th class="px-4 py-3 w-12 text-center">Diffuser</th>
+                    <th class="px-4 py-3">Match</th>
+                    <th class="px-4 py-3">Compétition / Date</th>
+                    <th class="px-4 py-3 text-center">Pré-sélection</th>
+                  </tr>
+                </thead>
+                <tbody id="smart-feed-body-soccer" class="divide-y divide-white/5">
+                </tbody>
+              </table>
+            </div>
+          </div>
 
-        <!-- Loading / No events indicator -->
-        <div id="api-status" class="mt-6 text-sm text-gray-400 hidden text-center py-4 bg-black/20 rounded-xl"></div>
+          <!-- Rugby Table -->
+          <div class="space-y-3">
+            <h3 class="text-lg font-display text-amber-300 flex items-center gap-2">🏉 Rugby</h3>
+            <div class="overflow-x-auto rounded-xl border border-white/10 bg-[#121212]">
+              <table class="w-full text-left text-sm">
+                <thead class="text-xs text-gray-400 uppercase bg-white/5 border-b border-white/10">
+                  <tr>
+                    <th class="px-4 py-3 w-12 text-center">Diffuser</th>
+                    <th class="px-4 py-3">Match</th>
+                    <th class="px-4 py-3">Compétition / Date</th>
+                    <th class="px-4 py-3 text-center">Pré-sélection</th>
+                  </tr>
+                </thead>
+                <tbody id="smart-feed-body-rugby" class="divide-y divide-white/5">
+                </tbody>
+              </table>
+            </div>
+          </div>
 
-        <!-- Matches Results Table -->
-        <div id="matches-results-container" class="mt-6 hidden">
-          <h3 class="text-sm font-semibold text-gray-300 uppercase tracking-wider mb-3">Prochains matchs disponibles</h3>
-          <div class="overflow-x-auto rounded-xl border border-white/10 bg-[#121212]">
-            <table class="w-full text-left text-sm">
-              <thead class="text-xs text-gray-400 uppercase bg-white/5 border-b border-white/10">
-                <tr>
-                  <th class="px-4 py-3">Match</th>
-                  <th class="px-4 py-3">Compétition / Date</th>
-                  <th class="px-4 py-3 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody id="matches-results-body" class="divide-y divide-white/5">
-              </tbody>
-            </table>
+          <!-- Other Sports Table -->
+          <div class="space-y-3">
+            <h3 class="text-lg font-display text-amber-300 flex items-center gap-2">🏆 Autres Sports</h3>
+            <div class="overflow-x-auto rounded-xl border border-white/10 bg-[#121212]">
+              <table class="w-full text-left text-sm">
+                <thead class="text-xs text-gray-400 uppercase bg-white/5 border-b border-white/10">
+                  <tr>
+                    <th class="px-4 py-3 w-12 text-center">Diffuser</th>
+                    <th class="px-4 py-3">Match</th>
+                    <th class="px-4 py-3">Compétition / Date</th>
+                    <th class="px-4 py-3 text-center">Pré-sélection</th>
+                  </tr>
+                </thead>
+                <tbody id="smart-feed-body-others" class="divide-y divide-white/5">
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Toggle for manual search -->
+        <div class="mt-6 border-t border-white/10 pt-4">
+          <button type="button" onclick="document.getElementById('manual-search-section').classList.toggle('hidden')" class="text-xs text-amber-300 hover:underline flex items-center gap-1">
+            <span class="material-symbols-outlined text-sm">search</span>
+            Besoin de rechercher une autre équipe spécifique ? (PSG, Marseille, Lyon, etc.)
+          </button>
+          
+          <div id="manual-search-section" class="hidden mt-4 pt-4 border-t border-white/5">
+            <div class="flex flex-wrap items-center justify-between gap-4">
+              <div class="flex-1 min-w-[250px] flex gap-3">
+                <input type="text" id="api-search-input" placeholder="Rechercher une équipe spécifique (ex: Monaco, Arsenal, Toulouse...)" class="flex-1 rounded-lg bg-[#121212] border border-white/10 px-4 py-2 text-white outline-none focus:border-amber-400 text-xs">
+                <button type="button" onclick="searchTeam()" class="rounded-lg bg-white/10 border border-white/20 px-4 py-2 font-semibold text-white hover:bg-white/20 text-xs transition-colors">Rechercher</button>
+              </div>
+              <div class="flex flex-wrap gap-1">
+                <button type="button" onclick="quickSearch('133714')" class="rounded-full bg-white/5 border border-white/10 px-2 py-1 text-[10px] hover:bg-amber-400 hover:text-black transition-colors">PSG</button>
+                <button type="button" onclick="quickSearch('133707')" class="rounded-full bg-white/5 border border-white/10 px-2 py-1 text-[10px] hover:bg-amber-400 hover:text-black transition-colors">OM</button>
+                <button type="button" onclick="quickSearch('134989')" class="rounded-full bg-white/5 border border-white/10 px-2 py-1 text-[10px] hover:bg-amber-400 hover:text-black transition-colors">France</button>
+                <button type="button" onclick="quickSearch('133739')" class="rounded-full bg-white/5 border border-white/10 px-2 py-1 text-[10px] hover:bg-amber-400 hover:text-black transition-colors">Real</button>
+                <button type="button" onclick="quickSearch('133738')" class="rounded-full bg-white/5 border border-white/10 px-2 py-1 text-[10px] hover:bg-amber-400 hover:text-black transition-colors">Barça</button>
+              </div>
+            </div>
+
+            <!-- Team Results -->
+            <div id="team-results" class="mt-4 hidden grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-3"></div>
+
+            <!-- Loading / No events indicator -->
+            <div id="api-status" class="mt-6 text-sm text-gray-400 hidden text-center py-4 bg-black/20 rounded-xl"></div>
+
+            <!-- Matches Results Table -->
+            <div id="matches-results-container" class="mt-6 hidden">
+              <h3 class="text-xs font-semibold text-gray-300 uppercase tracking-wider mb-3">Résultats de recherche</h3>
+              <div class="overflow-x-auto rounded-xl border border-white/10 bg-[#121212]">
+                <table class="w-full text-left text-sm text-gray-300">
+                  <thead class="text-xs text-gray-400 uppercase bg-white/5 border-b border-white/10">
+                    <tr>
+                      <th class="px-4 py-2">Match</th>
+                      <th class="px-4 py-2">Compétition / Date</th>
+                      <th class="px-4 py-2 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="matches-results-body" class="divide-y divide-white/5">
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      <section class="grid gap-6 lg:grid-cols-2">
+      <?php
+      $footMatchs = array_filter($matchs, function($m) { return $m['sport'] === 'Soccer'; });
+      $rugbyMatchs = array_filter($matchs, function($m) { return $m['sport'] === 'Rugby'; });
+      $autresMatchs = array_filter($matchs, function($m) { return $m['sport'] !== 'Soccer' && $m['sport'] !== 'Rugby'; });
+      
+      // Helper function to render a table of existing matches
+      function render_existing_matchs_table(array $list, string $title, string $icon): void {
+      ?>
         <div class="rounded-2xl border border-white/10 bg-[#1A1A1A] p-6 shadow-lg">
-          <h2 class="text-2xl font-display text-amber-300"><?php echo $editMatch ? 'Éditer un match' : 'Ajouter un match'; ?></h2>
-          <form method="post" enctype="multipart/form-data" class="mt-6 grid gap-4">
-            <input type="hidden" name="csrf_token" value="<?php echo e($_SESSION['csrf_token']); ?>">
-            <input type="hidden" name="action" value="save_match">
-            <?php if ($editMatch): ?>
-              <input type="hidden" name="match_id" value="<?php echo (int)$editMatch['id']; ?>">
-            <?php endif; ?>
-            <div class="grid gap-4 md:grid-cols-2">
-              <div>
-                <label class="mb-2 block text-sm text-gray-300">Équipe 1</label>
-                <input name="equipe_1" required value="<?php echo e(get_match_edit_value($editMatch, 'equipe_1')); ?>" class="w-full rounded-lg bg-[#121212] border border-white/10 px-4 py-3 text-white outline-none focus:border-amber-400">
-              </div>
-              <div>
-                <label class="mb-2 block text-sm text-gray-300">Équipe 2</label>
-                <input name="equipe_2" required value="<?php echo e(get_match_edit_value($editMatch, 'equipe_2')); ?>" class="w-full rounded-lg bg-[#121212] border border-white/10 px-4 py-3 text-white outline-none focus:border-amber-400">
-              </div>
-            </div>
-            <div>
-              <label class="mb-2 block text-sm text-gray-300">Compétition</label>
-              <input name="competition" value="<?php echo e(get_match_edit_value($editMatch, 'competition')); ?>" class="w-full rounded-lg bg-[#121212] border border-white/10 px-4 py-3 text-white outline-none focus:border-amber-400">
-            </div>
-            <div>
-              <label class="mb-2 block text-sm text-gray-300">Slug SEO personnalisé</label>
-              <input name="slug_seo" placeholder="ex: psg-om-2026" value="<?php echo e(get_match_edit_value($editMatch, 'slug')); ?>" class="w-full rounded-lg bg-[#121212] border border-white/10 px-4 py-3 text-white outline-none focus:border-amber-400">
-              <p class="mt-2 text-xs text-gray-500">Optionnel. Sinon, le slug est généré automatiquement avec les synonymes PSG / OM.</p>
-            </div>
-            <div>
-              <label class="mb-2 block text-sm text-gray-300">Date / Heure</label>
-              <input type="datetime-local" name="date_match" required value="<?php echo e(mysql_to_datetime_local(get_match_edit_value($editMatch, 'date_match'))); ?>" class="w-full rounded-lg bg-[#121212] border border-white/10 px-4 py-3 text-white outline-none focus:border-amber-400">
-            </div>
-            <div>
-              <label class="mb-2 block text-sm text-gray-300">Affiche du match / logo compétition</label>
-              <input type="file" name="match_image" accept="image/jpeg,image/png,image/webp" class="w-full rounded-lg bg-[#121212] border border-white/10 px-4 py-3 text-white outline-none focus:border-amber-400">
-              <p class="mt-2 text-xs text-gray-500">Format accepté: JPEG, PNG, WEBP. L'image est convertie en JPG et renommée avec le slug.</p>
-            </div>
-            <?php if ($editMatch && !empty($editMatch['image_path'])): ?>
-              <div class="overflow-hidden rounded-xl border border-white/10">
-                <img src="<?php echo e($editMatch['image_path']); ?>" alt="Image du match" class="h-48 w-full object-cover">
-              </div>
-            <?php endif; ?>
-            
-            <hr class="border-white/10">
-            
-            <div class="grid gap-4 md:grid-cols-3">
-              <div>
-                <label class="mb-2 block text-sm text-gray-300">Score Équipe 1</label>
-                <input type="number" name="score_equipe_1" min="0" max="999" value="<?php echo e(get_match_edit_value($editMatch, 'score_equipe_1')); ?>" class="w-full rounded-lg bg-[#121212] border border-white/10 px-4 py-3 text-white outline-none focus:border-amber-400" placeholder="ex: 2">
-              </div>
-              <div>
-                <label class="mb-2 block text-sm text-gray-300">Score Équipe 2</label>
-                <input type="number" name="score_equipe_2" min="0" max="999" value="<?php echo e(get_match_edit_value($editMatch, 'score_equipe_2')); ?>" class="w-full rounded-lg bg-[#121212] border border-white/10 px-4 py-3 text-white outline-none focus:border-amber-400" placeholder="ex: 1">
-              </div>
-              <div>
-                <label class="mb-2 block text-sm text-gray-300">Minute (si LIVE)</label>
-                <input type="number" name="minute_actuelle" min="0" max="120" value="<?php echo e(get_match_edit_value($editMatch, 'minute_actuelle')); ?>" class="w-full rounded-lg bg-[#121212] border border-white/10 px-4 py-3 text-white outline-none focus:border-amber-400" placeholder="ex: 45">
-              </div>
-            </div>
-            
-            <div>
-              <label class="mb-2 block text-sm text-gray-300">Statut du match</label>
-              <select name="statut" class="w-full rounded-lg bg-[#121212] border border-white/10 px-4 py-3 text-white outline-none focus:border-amber-400">
-                <option value="scheduled" <?php echo get_match_edit_value($editMatch, 'statut') === 'scheduled' || !$editMatch ? 'selected' : ''; ?>>À venir (UPCOMING)</option>
-                <option value="live" <?php echo get_match_edit_value($editMatch, 'statut') === 'live' ? 'selected' : ''; ?>>En direct (LIVE)</option>
-                <option value="finished" <?php echo get_match_edit_value($editMatch, 'statut') === 'finished' ? 'selected' : ''; ?>>Terminé (FINISHED)</option>
-              </select>
-              <p class="mt-2 text-xs text-gray-500">Le statut s'affichera sur la page d'accueil. LIVE affichera la minute actuelle.</p>
-            </div>
-
-            <div class="flex items-center gap-2 py-2">
-              <input type="checkbox" name="is_featured" id="is_featured" value="1" <?php echo get_match_edit_value($editMatch, 'is_featured') == 1 ? 'checked' : ''; ?> class="rounded bg-[#121212] border-white/10 text-amber-400 focus:ring-amber-400">
-              <label for="is_featured" class="text-sm text-gray-300">Mettre ce match à l'affiche sur l'accueil (Bannière Hero)</label>
-            </div>
-            
-            <button type="submit" class="rounded-lg bg-amber-400 px-4 py-3 font-semibold text-black hover:bg-amber-300"><?php echo $editMatch ? 'Mettre à jour le match' : 'Ajouter le match'; ?></button>
-          </form>
-        </div>
-
-        <div class="rounded-2xl border border-white/10 bg-[#1A1A1A] p-6 shadow-lg">
-          <h2 class="text-2xl font-display text-amber-300">Matchs existants</h2>
-          <div class="mt-6 space-y-4">
-            <?php foreach ($matchs as $match): ?>
-              <div class="rounded-xl border border-white/10 bg-[#121212] p-4">
-                <div class="flex gap-4">
-                  <div class="h-20 w-32 overflow-hidden rounded-lg border border-white/10 bg-black/30 flex-shrink-0">
-                    <img src="<?php echo e(!empty($match['image_path']) ? $match['image_path'] : '/assets/uploads/default-match.svg'); ?>" alt="<?php echo e($match['equipe_1'] . ' contre ' . $match['equipe_2']); ?>" class="h-full w-full object-cover">
-                  </div>
-                  <div class="flex-1">
-                    <div class="flex flex-wrap items-start justify-between gap-3">
-                      <div>
-                        <div class="text-lg font-semibold text-white"><?php echo e($match['equipe_1']); ?> <span class="text-gray-500">vs</span> <?php echo e($match['equipe_2']); ?></div>
-                        <div class="mt-1 text-sm text-gray-400"><?php echo e((string)($match['competition'] ?: 'Compétition non renseignée')); ?> · <?php echo e((new DateTimeImmutable($match['date_match']))->format('d/m/Y H:i')); ?></div>
-                        <div class="mt-2 text-xs text-gray-500">Slug: <?php echo e($match['slug']); ?> · Statut: <?php echo (int)$match['is_active'] === 1 ? '<span class="text-emerald-300">Actif</span>' : '<span class="text-red-300">Désactivé</span>'; ?> <?php echo (int)($match['is_featured'] ?? 0) === 1 ? '· <span class="text-amber-300 font-bold">★ À L\'AFFICHE</span>' : ''; ?></div>
+          <h3 class="text-xl font-display text-amber-300 flex items-center gap-2">
+            <span><?php echo $icon; ?></span>
+            <span><?php echo e($title); ?></span>
+            <span class="text-xs font-normal text-gray-400">(<?php echo count($list); ?> match(s))</span>
+          </h3>
+          <div class="mt-6 overflow-x-auto rounded-xl border border-white/10 bg-[#121212]">
+            <table class="w-full text-left text-sm text-gray-300">
+              <thead class="text-xs text-gray-400 uppercase bg-white/5 border-b border-white/10">
+                <tr>
+                  <th class="px-4 py-3">Équipes</th>
+                  <th class="px-4 py-3">Compétition / Date</th>
+                  <th class="px-4 py-3 text-center">Statut</th>
+                  <th class="px-4 py-3 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-white/5">
+                <?php foreach ($list as $match): 
+                  $d = new DateTimeImmutable($match['date_match']);
+                  $badge = get_match_status_badge($match);
+                  $isLive = is_match_live($match);
+                  $homeLogo = !empty($match['image_path']) ? $match['image_path'] : null;
+                  $awayLogo = !empty($match['image_path_away']) ? $match['image_path_away'] : null;
+                ?>
+                  <tr class="align-middle hover:bg-white/5 transition-colors">
+                    <td class="px-4 py-4">
+                      <div class="flex items-center gap-3">
+                        <div class="flex items-center gap-1.5 flex-shrink-0">
+                          <?php if ($homeLogo): ?>
+                            <img src="<?php echo e($homeLogo); ?>" alt="" class="h-8 w-8 object-contain">
+                          <?php else: ?>
+                            <div class="h-8 w-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-[10px] text-gray-500 font-semibold">H</div>
+                          <?php endif; ?>
+                          <span class="text-gray-500 text-xs">vs</span>
+                          <?php if ($awayLogo): ?>
+                            <img src="<?php echo e($awayLogo); ?>" alt="" class="h-8 w-8 object-contain">
+                          <?php else: ?>
+                            <div class="h-8 w-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-[10px] text-gray-500 font-semibold">A</div>
+                          <?php endif; ?>
+                        </div>
+                        <div>
+                          <div class="font-semibold text-white"><?php echo e($match['equipe_1']); ?> <span class="text-gray-500 font-normal">c.</span> <?php echo e($match['equipe_2']); ?></div>
+                          <div class="text-[10px] text-gray-500 mt-0.5">Slug: <?php echo e($match['slug']); ?></div>
+                        </div>
                       </div>
-                      <div class="flex flex-wrap gap-2">
-                        <a href="/le-comptoir?tab=matchs&edit_match=<?php echo (int)$match['id']; ?>" class="rounded-lg border border-amber-400/30 px-3 py-2 text-sm text-amber-300 hover:bg-amber-400 hover:text-black">Modifier</a>
+                    </td>
+                    <td class="px-4 py-4">
+                      <div class="text-white font-medium"><?php echo e((string)($match['competition'] ?: 'Compétition')); ?></div>
+                      <div class="text-gray-400 text-xs mt-0.5"><?php echo e($d->format('d/m/Y H:i')); ?></div>
+                    </td>
+                    <td class="px-4 py-4 text-center">
+                      <?php if ($isLive): ?>
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-semibold uppercase animate-pulse border border-emerald-500/20">
+                          <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                          <?php echo e($badge); ?>
+                        </span>
+                      <?php elseif ($badge === 'FINISHED'): ?>
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-white/5 text-gray-400 text-xs font-semibold uppercase border border-white/10">
+                          <?php echo e($badge); ?>
+                        </span>
+                      <?php else: ?>
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-amber-400/5 text-amber-300/80 text-xs font-semibold uppercase border border-amber-400/10">
+                          <?php echo e($badge); ?>
+                        </span>
+                      <?php endif; ?>
+                    </td>
+                    <td class="px-4 py-4 text-right">
+                      <div class="flex items-center justify-end gap-2">
+                        <!-- Affiche Toggle -->
+                        <form method="post" style="display:inline-block">
+                          <input type="hidden" name="csrf_token" value="<?php echo e($_SESSION['csrf_token']); ?>">
+                          <?php if ((int)($match['is_featured'] ?? 0) === 1): ?>
+                            <input type="hidden" name="action" value="remove_featured_match">
+                            <input type="hidden" name="id" value="<?php echo (int)$match['id']; ?>">
+                            <button type="submit" class="rounded-lg bg-amber-400 px-3 py-1.5 text-xs text-black font-semibold hover:bg-amber-300 flex items-center gap-1 transition-all">
+                              ★ À l'affiche
+                            </button>
+                          <?php else: ?>
+                            <input type="hidden" name="action" value="set_featured_match">
+                            <input type="hidden" name="id" value="<?php echo (int)$match['id']; ?>">
+                            <button type="submit" class="rounded-lg bg-white/5 border border-white/10 px-3 py-1.5 text-xs text-gray-300 hover:border-amber-400/50 hover:text-amber-300 font-medium transition-all">
+                              Mettre en avant
+                            </button>
+                          <?php endif; ?>
+                        </form>
+                        
+                        <!-- Active/Disable -->
                         <?php if ((int)$match['is_active'] === 1): ?>
-                          <form method="post">
+                          <form method="post" style="display:inline-block">
                             <input type="hidden" name="csrf_token" value="<?php echo e($_SESSION['csrf_token']); ?>">
                             <input type="hidden" name="action" value="disable_match">
                             <input type="hidden" name="id" value="<?php echo (int)$match['id']; ?>">
-                            <button class="rounded-lg border border-amber-400/30 px-3 py-2 text-sm text-amber-300 hover:bg-amber-400 hover:text-black">Désactiver</button>
+                            <button type="submit" class="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-gray-400 hover:bg-white/5 transition-all">Désactiver</button>
                           </form>
                         <?php endif; ?>
-                        <form method="post" onsubmit="return confirm('Supprimer définitivement ce match ?');">
+                        
+                        <!-- Delete -->
+                        <form method="post" onsubmit="return confirm('Supprimer définitivement ce match de la programmation ?');" style="display:inline-block">
                           <input type="hidden" name="csrf_token" value="<?php echo e($_SESSION['csrf_token']); ?>">
                           <input type="hidden" name="action" value="delete_match">
                           <input type="hidden" name="id" value="<?php echo (int)$match['id']; ?>">
-                          <button class="rounded-lg border border-red-500/40 px-3 py-2 text-sm text-red-300 hover:bg-red-500 hover:text-white">Supprimer</button>
+                          <button type="submit" class="rounded-lg border border-red-500/30 px-3 py-1.5 text-xs text-red-400 hover:bg-red-500/10 hover:text-white transition-all">Supprimer</button>
                         </form>
                       </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            <?php endforeach; ?>
-            <?php if (empty($matchs)): ?>
-              <p class="text-sm text-gray-400">Aucun match enregistré.</p>
-            <?php endif; ?>
+                    </td>
+                  </tr>
+                <?php endforeach; ?>
+                <?php if (empty($list)): ?>
+                  <tr>
+                    <td colspan="4" class="px-4 py-8 text-center text-gray-500 italic">Aucun match programmé dans cette catégorie.</td>
+                  </tr>
+                <?php endif; ?>
+              </tbody>
+            </table>
           </div>
         </div>
-      </section>
+      <?php
+      }
+      ?>
+
+      <div class="space-y-8">
+        <h2 class="text-2xl font-display text-amber-300 border-b border-white/10 pb-2">Programmation Active (Matchs Diffusés)</h2>
+        <?php 
+          render_existing_matchs_table($footMatchs, "Football", "⚽");
+          render_existing_matchs_table($rugbyMatchs, "Rugby", "🏉");
+          render_existing_matchs_table($autresMatchs, "Autres Sports", "🏆");
+        ?>
+      </div>
     <?php elseif ($tab === 'design'): 
       $carouselJson = config_value('carousel_images', '[]');
       $carouselImages = json_decode($carouselJson, true) ?: [];
@@ -929,6 +1072,11 @@ $heroBgImage = config_value('hero_bg_image', '/assets/uploads/hero-bg.jpg');
             <div>
               <label class="mb-2 block text-sm text-gray-300">Lien MisterGoodBeer</label>
               <input name="booking_mistergoodbeer_url" value="<?php echo e(config_value('booking_mistergoodbeer_url')); ?>" class="w-full rounded-lg bg-[#121212] border border-white/10 px-4 py-3 text-white outline-none focus:border-amber-400">
+            </div>
+            <div>
+              <label class="mb-2 block text-sm text-gray-300">Clé API TheSportsDB (optionnel)</label>
+              <input name="sportsdb_api_key" placeholder="Par défaut: 3 (clé publique limitée)" value="<?php echo e(config_value('sportsdb_api_key')); ?>" class="w-full rounded-lg bg-[#121212] border border-white/10 px-4 py-3 text-white outline-none focus:border-amber-400">
+              <p class="mt-2 text-xs text-gray-500">Laissez vide ou '3' pour utiliser la clé gratuite. Une clé payante permet de charger la totalité des matchs de chaque championnat.</p>
             </div>
             <div>
               <label class="mb-2 block text-sm text-gray-300">Lien Instagram</label>
@@ -1049,12 +1197,207 @@ $heroBgImage = config_value('hero_bg_image', '/assets/uploads/hero-bg.jpg');
   </main>
 
   <script>
-     document.querySelectorAll('a[href*="tab="]').forEach(link => {
+    document.querySelectorAll('a[href*="tab="]').forEach(link => {
       link.addEventListener('click', () => {
         try { localStorage.setItem('gentleman-admin-tab', new URL(link.href).searchParams.get('tab') || 'matchs'); } catch (e) {}
       });
     });
 
+    const SPORTSDB_API_KEY = "<?php echo e(config_value('sportsdb_api_key', '3')); ?>";
+    let allFixtures = [];
+
+    // Ligue IDs to sync (Foot & Rugby, divisions majeures)
+    const leaguesToSync = [
+      { id: '4334', name: 'Ligue 1' },
+      { id: '4480', name: 'Champions League' },
+      { id: '4429', name: 'Coupe du Monde' },
+      { id: '4562', name: 'Euro' },
+      { id: '4328', name: 'Premier League' },
+      { id: '4335', name: 'La Liga' },
+      { id: '4332', name: 'Serie A' },
+      { id: '4396', name: 'Ligue 2' },
+      { id: '4484', name: 'Coupe de France' },
+      { id: '4415', name: 'Top 14 Rugby' },
+      { id: '4417', name: 'Six Nations Rugby' }
+    ];
+
+    async function loadSmartFeed() {
+      const statusDiv = document.getElementById('smart-feed-status');
+      const container = document.getElementById('smart-feed-container');
+      const bodySoccer = document.getElementById('smart-feed-body-soccer');
+      const bodyRugby = document.getElementById('smart-feed-body-rugby');
+      const bodyOthers = document.getElementById('smart-feed-body-others');
+      
+      statusDiv.classList.remove('hidden');
+      statusDiv.innerHTML = '<span class="inline-block animate-pulse">Chargement intelligent des flux (Foot & Rugby)...</span>';
+      container.classList.add('hidden');
+      bodySoccer.innerHTML = '';
+      bodyRugby.innerHTML = '';
+      bodyOthers.innerHTML = '';
+      allFixtures = [];
+      
+      try {
+        const fetchPromises = leaguesToSync.map(async (league) => {
+          try {
+            const res = await fetch(`https://www.thesportsdb.com/api/v1/json/${SPORTSDB_API_KEY}/eventsnextleague.php?id=${league.id}`);
+            const data = await res.json();
+            if (data && data.events) {
+              return data.events.map(ev => ({ ...ev, leagueName: league.name }));
+            }
+          } catch (e) {
+            console.warn(`Could not load fixtures for league ${league.name}`, e);
+          }
+          return [];
+        });
+        
+        const results = await Promise.all(fetchPromises);
+        const mergedEvents = results.flat();
+        
+        if (mergedEvents.length === 0) {
+          statusDiv.textContent = "Aucun match à venir trouvé dans les grands championnats.";
+          return;
+        }
+        
+        // Trier chronologiquement
+        mergedEvents.sort((a, b) => new Date(a.dateEvent + 'T' + (a.strTime || '00:00:00')) - new Date(b.dateEvent + 'T' + (b.strTime || '00:00:00')));
+        
+        statusDiv.classList.add('hidden');
+        container.classList.remove('hidden');
+        
+        let counts = { soccer: 0, rugby: 0, others: 0 };
+        
+        mergedEvents.forEach((event, index) => {
+          const dateStr = event.dateEvent + 'T' + (event.strTime || '00:00:00');
+          const dateObj = new Date(dateStr);
+          
+          // Filtrer les matchs prévus dans plus de 30 jours
+          const maxDate = new Date();
+          maxDate.setDate(maxDate.getDate() + 30);
+          if (dateObj > maxDate) {
+            return;
+          }
+          
+          const formattedDate = dateObj.toLocaleDateString('fr-FR', {
+            day: '2-digit', month: '2-digit', year: 'numeric',
+            hour: '2-digit', minute: '2-digit'
+          });
+          
+          const pad = (n) => n.toString().padStart(2, '0');
+          const sqlDate = `${dateObj.getFullYear()}-${pad(dateObj.getMonth()+1)}-${pad(dateObj.getDate())} ${pad(dateObj.getHours())}:${pad(dateObj.getMinutes())}:00`;
+          
+          const homeLogo = event.strHomeTeamBadge || '';
+          const awayLogo = event.strAwayTeamBadge || '';
+          const sportType = event.strSport || 'Soccer';
+          const apiEventId = event.idEvent || '';
+          
+          // Règles de pré-sélection (Équipes françaises, PSG, Marseille, Toulouse Rugby, phases finales)
+          const home = event.strHomeTeam.toLowerCase();
+          const away = event.strAwayTeam.toLowerCase();
+          const keywords = ['psg', 'paris sg', 'paris saint-germain', 'marseille', 'om', 'france', 'toulouse', 'monaco', 'lyon', 'real madrid', 'barcelona', 'toulon'];
+          const matchesKeyword = keywords.some(kw => home.includes(kw) || away.includes(kw));
+          const isFinalOrKey = event.strEvent.toLowerCase().includes('final') || event.strEvent.toLowerCase().includes('semi');
+          const shouldAutoCheck = matchesKeyword || isFinalOrKey;
+          
+          allFixtures.push({
+            index: index,
+            equipe_1: event.strHomeTeam,
+            equipe_2: event.strAwayTeam,
+            competition: event.strLeague || event.leagueName,
+            date_match: sqlDate,
+            image_path_home: homeLogo,
+            image_path_away: awayLogo,
+            sport: sportType,
+            api_event_id: apiEventId,
+            checked: shouldAutoCheck
+          });
+          
+          const tr = document.createElement('tr');
+          tr.className = 'border-b border-white/5 hover:bg-white/5 transition-colors align-middle';
+          tr.innerHTML = `
+            <td class="px-4 py-4 text-center">
+              <input type="checkbox" id="check-${index}" onchange="toggleFixture(${index})" ${shouldAutoCheck ? 'checked' : ''} class="w-5 h-5 rounded bg-[#121212] border-white/10 text-amber-400 focus:ring-amber-400 cursor-pointer">
+            </td>
+            <td class="px-4 py-4">
+              <div class="flex items-center gap-3">
+                <div class="flex items-center gap-1.5 flex-shrink-0">
+                  ${homeLogo ? `<img src="${homeLogo}" class="h-8 w-8 object-contain" />` : `<div class="h-8 w-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-[10px] text-gray-500 font-semibold">H</div>`}
+                  <span class="text-gray-500 text-[10px]">vs</span>
+                  ${awayLogo ? `<img src="${awayLogo}" class="h-8 w-8 object-contain" />` : `<div class="h-8 w-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-[10px] text-gray-500 font-semibold">A</div>`}
+                </div>
+                <div>
+                  <span class="font-semibold text-white">${event.strHomeTeam}</span>
+                  <span class="text-gray-500 mx-0.5">c.</span>
+                  <span class="font-semibold text-white">${event.strAwayTeam}</span>
+                </div>
+              </div>
+            </td>
+            <td class="px-4 py-4">
+              <div class="text-white text-sm font-semibold">${event.strLeague || event.leagueName}</div>
+              <div class="text-gray-400 text-xs mt-0.5">${formattedDate}</div>
+            </td>
+            <td class="px-4 py-4 text-center">
+              ${shouldAutoCheck ? '<span class="text-xs px-2.5 py-1 bg-amber-400/10 text-amber-300 rounded-full font-semibold border border-amber-400/20">🔥 Auto-Sélection</span>' : '<span class="text-xs text-gray-500">-</span>'}
+            </td>
+          `;
+          
+          if (sportType === 'Soccer') {
+            bodySoccer.appendChild(tr);
+            counts.soccer++;
+          } else if (sportType === 'Rugby') {
+            bodyRugby.appendChild(tr);
+            counts.rugby++;
+          } else {
+            bodyOthers.appendChild(tr);
+            counts.others++;
+          }
+        });
+        
+        toggleTableVisibility('smart-feed-body-soccer', counts.soccer);
+        toggleTableVisibility('smart-feed-body-rugby', counts.rugby);
+        toggleTableVisibility('smart-feed-body-others', counts.others);
+        
+        updateSelectedCount();
+      } catch (err) {
+        statusDiv.textContent = "Erreur de chargement du Smart Feed.";
+        console.error(err);
+      }
+    }
+
+    function toggleTableVisibility(bodyId, count) {
+      const tableDiv = document.getElementById(bodyId).closest('.space-y-3');
+      if (count === 0) {
+        tableDiv.classList.add('hidden');
+      } else {
+        tableDiv.classList.remove('hidden');
+      }
+    }
+
+    function toggleFixture(index) {
+      if (allFixtures[index]) {
+        allFixtures[index].checked = document.getElementById(`check-${index}`).checked;
+      }
+      updateSelectedCount();
+    }
+
+    function updateSelectedCount() {
+      const count = allFixtures.filter(f => f.checked).length;
+      document.getElementById('selected-count').textContent = count;
+      const btn = document.getElementById('bulk-sync-btn');
+      if (count > 0) {
+        btn.disabled = false;
+        btn.className = "rounded-lg bg-amber-400 px-5 py-3 font-semibold text-black hover:bg-amber-300 text-sm transition-all cursor-pointer shadow-[0_0_15px_rgba(212,175,55,0.2)] hover:shadow-[0_0_20px_rgba(212,175,55,0.4)]";
+      } else {
+        btn.disabled = true;
+        btn.className = "rounded-lg bg-gray-600 px-5 py-3 font-semibold text-gray-400 text-sm transition-all cursor-not-allowed";
+      }
+    }
+
+    function submitBulkSync(e) {
+      const selected = allFixtures.filter(f => f.checked);
+      document.getElementById('fixtures-json-input').value = JSON.stringify(selected);
+    }
+
+    // --- MANUALLY SEARCH ---
     async function quickSearch(teamId) {
       const statusDiv = document.getElementById('api-status');
       const container = document.getElementById('matches-results-container');
@@ -1067,7 +1410,7 @@ $heroBgImage = config_value('hero_bg_image', '/assets/uploads/hero-bg.jpg');
       container.classList.add('hidden');
       
       try {
-        const res = await fetch(`https://www.thesportsdb.com/api/v1/json/3/eventsnext.php?id=${teamId}`);
+        const res = await fetch(`https://www.thesportsdb.com/api/v1/json/${SPORTSDB_API_KEY}/eventsnext.php?id=${teamId}`);
         const data = await res.json();
         
         if (!data || !data.events || data.events.length === 0) {
@@ -1080,7 +1423,6 @@ $heroBgImage = config_value('hero_bg_image', '/assets/uploads/hero-bg.jpg');
         resultsBody.innerHTML = '';
         
         data.events.forEach(event => {
-          // Formatage de la date en ISO local
           const dateStr = event.dateEvent + 'T' + (event.strTime || '00:00:00');
           const dateObj = new Date(dateStr);
           const formattedDate = dateObj.toLocaleDateString('fr-FR', {
@@ -1088,22 +1430,26 @@ $heroBgImage = config_value('hero_bg_image', '/assets/uploads/hero-bg.jpg');
             hour: '2-digit', minute: '2-digit'
           });
           
-          // Formater la date en SQL local YYYY-MM-DD HH:MM:SS
           const pad = (n) => n.toString().padStart(2, '0');
           const sqlDate = `${dateObj.getFullYear()}-${pad(dateObj.getMonth()+1)}-${pad(dateObj.getDate())} ${pad(dateObj.getHours())}:${pad(dateObj.getMinutes())}:00`;
-          
-          // Récupérer le logo du match
-          const imgUrl = event.strAwayTeamBadge || event.strHomeTeamBadge || '';
+          const homeLogo = event.strHomeTeamBadge || '';
+          const awayLogo = event.strAwayTeamBadge || '';
+          const sportType = event.strSport || 'Soccer';
+          const apiEventId = event.idEvent || '';
           
           const tr = document.createElement('tr');
           tr.className = 'border-b border-white/5 hover:bg-white/5 transition-colors align-middle';
           tr.innerHTML = `
             <td class="px-4 py-4">
               <div class="flex items-center gap-3">
-                ${imgUrl ? `<img src="${imgUrl}" class="h-8 w-8 object-contain" />` : ''}
+                <div class="flex items-center gap-1.5 flex-shrink-0">
+                  ${homeLogo ? `<img src="${homeLogo}" class="h-8 w-8 object-contain" />` : `<div class="h-8 w-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-[10px] text-gray-500 font-semibold">H</div>`}
+                  <span class="text-gray-500 text-[10px]">vs</span>
+                  ${awayLogo ? `<img src="${awayLogo}" class="h-8 w-8 object-contain" />` : `<div class="h-8 w-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-[10px] text-gray-500 font-semibold">A</div>`}
+                </div>
                 <div>
                   <span class="font-semibold text-white">${event.strHomeTeam}</span>
-                  <span class="text-gray-500 mx-1">vs</span>
+                  <span class="text-gray-500 mx-0.5">c.</span>
                   <span class="font-semibold text-white">${event.strAwayTeam}</span>
                 </div>
               </div>
@@ -1121,7 +1467,10 @@ $heroBgImage = config_value('hero_bg_image', '/assets/uploads/hero-bg.jpg');
                   <input type="hidden" name="equipe_2" value="${event.strAwayTeam}">
                   <input type="hidden" name="competition" value="${event.strLeague || 'Football'}">
                   <input type="hidden" name="date_match" value="${sqlDate}">
-                  <input type="hidden" name="image_path" value="${imgUrl}">
+                  <input type="hidden" name="image_path_home" value="${homeLogo}">
+                  <input type="hidden" name="image_path_away" value="${awayLogo}">
+                  <input type="hidden" name="sport" value="${sportType}">
+                  <input type="hidden" name="api_event_id" value="${apiEventId}">
                   <button type="submit" class="rounded bg-white/5 border border-white/10 px-3 py-1.5 text-xs text-gray-200 hover:bg-amber-400 hover:text-black transition-colors font-medium">Importer & Diffuser</button>
                 </form>
                 <form method="post" style="display:inline-block">
@@ -1131,7 +1480,10 @@ $heroBgImage = config_value('hero_bg_image', '/assets/uploads/hero-bg.jpg');
                   <input type="hidden" name="equipe_2" value="${event.strAwayTeam}">
                   <input type="hidden" name="competition" value="${event.strLeague || 'Football'}">
                   <input type="hidden" name="date_match" value="${sqlDate}">
-                  <input type="hidden" name="image_path" value="${imgUrl}">
+                  <input type="hidden" name="image_path_home" value="${homeLogo}">
+                  <input type="hidden" name="image_path_away" value="${awayLogo}">
+                  <input type="hidden" name="sport" value="${sportType}">
+                  <input type="hidden" name="api_event_id" value="${apiEventId}">
                   <input type="hidden" name="is_featured" value="1">
                   <button type="submit" class="rounded bg-amber-400 px-3 py-1.5 text-xs text-black hover:bg-amber-300 transition-colors font-semibold">★ Importer & Mettre à l'affiche</button>
                 </form>
@@ -1160,7 +1512,7 @@ $heroBgImage = config_value('hero_bg_image', '/assets/uploads/hero-bg.jpg');
       container.classList.add('hidden');
       
       try {
-        const res = await fetch(`https://www.thesportsdb.com/api/v1/json/3/searchteams.php?t=${encodeURIComponent(query)}`);
+        const res = await fetch(`https://www.thesportsdb.com/api/v1/json/${SPORTSDB_API_KEY}/searchteams.php?t=${encodeURIComponent(query)}`);
         const data = await res.json();
         
         if (!data || !data.teams || data.teams.length === 0) {
@@ -1173,14 +1525,14 @@ $heroBgImage = config_value('hero_bg_image', '/assets/uploads/hero-bg.jpg');
         teamResults.innerHTML = '';
         
         data.teams.slice(0, 10).forEach(team => {
-          if (team.strSport !== 'Soccer') return;
+          if (team.strSport !== 'Soccer' && team.strSport !== 'Rugby') return;
           
           const div = document.createElement('button');
           div.type = 'button';
           div.onclick = () => quickSearch(team.idTeam);
           div.className = 'flex flex-col items-center justify-center p-3 rounded-xl border border-white/10 bg-white/5 hover:border-amber-400/50 hover:bg-white/10 transition-all text-center';
           div.innerHTML = `
-            ${team.strTeamBadge ? `<img src="${team.strTeamBadge}" class="h-12 w-12 object-contain mb-2" />` : ''}
+            ${team.strBadge ? `<img src="${team.strBadge}" class="h-12 w-12 object-contain mb-2" />` : ''}
             <span class="text-xs font-semibold text-white truncate w-full">${team.strTeam}</span>
             <span class="text-[9px] text-gray-500 mt-0.5">${team.strCountry}</span>
           `;
@@ -1189,7 +1541,7 @@ $heroBgImage = config_value('hero_bg_image', '/assets/uploads/hero-bg.jpg');
         
         if (teamResults.children.length === 0) {
           statusDiv.classList.remove('hidden');
-          statusDiv.textContent = "Aucune équipe de football trouvée.";
+          statusDiv.textContent = "Aucune équipe trouvée.";
           teamResults.classList.add('hidden');
         }
       } catch (err) {
@@ -1203,6 +1555,14 @@ $heroBgImage = config_value('hero_bg_image', '/assets/uploads/hero-bg.jpg');
       if (e.key === 'Enter') {
         e.preventDefault();
         searchTeam();
+      }
+    });
+
+    // Auto-load smart feed on tab matches
+    document.addEventListener("DOMContentLoaded", () => {
+      const tab = new URLSearchParams(window.location.search).get('tab') || 'matchs';
+      if (tab === 'matchs') {
+        loadSmartFeed();
       }
     });
   </script>

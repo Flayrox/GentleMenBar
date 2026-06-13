@@ -10,14 +10,14 @@ $stmtFeatured = $pdo->query('SELECT * FROM matchs WHERE is_active = 1 AND is_fea
 $featuredMatch = $stmtFeatured->fetch();
 
 if (!$featuredMatch) {
-    // Fallback automatique sur le prochain match à venir
-    $stmtFeaturedAuto = $pdo->query('SELECT * FROM matchs WHERE is_active = 1 AND date_match >= NOW() ORDER BY date_match ASC LIMIT 1');
+    // Fallback automatique sur le prochain match à venir dans les 15 prochains jours
+    $stmtFeaturedAuto = $pdo->query('SELECT * FROM matchs WHERE is_active = 1 AND date_match >= NOW() AND date_match <= DATE_ADD(NOW(), INTERVAL 15 DAY) ORDER BY date_match ASC LIMIT 1');
     $featuredMatch = $stmtFeaturedAuto->fetch() ?: null;
 }
 
-// Récupérer les prochains matchs actifs (exclure le match à l'affiche de la liste des petits blocs s'il est déjà en vedette)
+// Récupérer les prochains matchs actifs (exclure le match à l'affiche de la liste des petits blocs s'il est déjà en vedette) dans les 15 prochains jours
 $featuredId = $featuredMatch ? (int)$featuredMatch['id'] : 0;
-$stmt = $pdo->prepare('SELECT * FROM matchs WHERE is_active = 1 AND id != :featured_id AND date_match >= NOW() ORDER BY date_match ASC LIMIT 6');
+$stmt = $pdo->prepare('SELECT * FROM matchs WHERE is_active = 1 AND id != :featured_id AND date_match >= NOW() AND date_match <= DATE_ADD(NOW(), INTERVAL 15 DAY) ORDER BY date_match ASC LIMIT 6');
 $stmt->execute([':featured_id' => $featuredId]);
 $nextMatchs = $stmt->fetchAll();
 
@@ -42,9 +42,6 @@ $ctaSecondary = config_value('hero_cta_secondary', 'Découvrir la carte');
 $ctaPrimaryLink = "document.getElementById('matchs').scrollIntoView({behavior:'smooth'})";
 
 if ($featuredMatch) {
-    if (!empty($featuredMatch['image_path'])) {
-        $heroBg = $featuredMatch['image_path'];
-    }
     $heroTitle = "CE SOIR AU BAR\\n" . $featuredMatch['equipe_1'] . " vs " . $featuredMatch['equipe_2'];
     $heroSubtitle = "Venez vivre " . $featuredMatch['equipe_1'] . " contre " . $featuredMatch['equipe_2'] . " en direct (" . ($featuredMatch['competition'] ?: 'Événement') . ") au Gentleman Pub !";
     $ctaPrimary = "Voir les détails du match";
@@ -58,6 +55,15 @@ if ($featuredMatch) {
         <div class="flex flex-col max-w-4xl">
             <?php if ($featuredMatch): ?>
                 <span class="inline-flex items-center gap-2 font-label-caps text-label-caps text-primary tracking-[0.3em] uppercase mb-4 animate-pulse">⭐ MATCH À L'AFFICHE</span>
+                <div class="flex items-center gap-6 mb-6">
+                    <?php if (!empty($featuredMatch['image_path'])): ?>
+                        <img src="<?php echo e($featuredMatch['image_path']); ?>" alt="<?php echo e($featuredMatch['equipe_1']); ?>" class="h-20 w-20 object-contain drop-shadow-[0_0_12px_rgba(212,175,55,0.3)] bg-black/20 p-1 rounded-lg border border-white/5">
+                    <?php endif; ?>
+                    <span class="text-2xl font-display text-primary/60">VS</span>
+                    <?php if (!empty($featuredMatch['image_path_away'])): ?>
+                        <img src="<?php echo e($featuredMatch['image_path_away']); ?>" alt="<?php echo e($featuredMatch['equipe_2']); ?>" class="h-20 w-20 object-contain drop-shadow-[0_0_12px_rgba(212,175,55,0.3)] bg-black/20 p-1 rounded-lg border border-white/5">
+                    <?php endif; ?>
+                </div>
             <?php else: ?>
                 <span class="font-label-caps text-label-caps text-primary-container/70 tracking-[0.3em] uppercase mb-4"><?php echo e(config_value('site_tagline')); ?></span>
             <?php endif; ?>
@@ -101,9 +107,9 @@ if ($featuredMatch) {
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-lg">
                     <?php foreach ($nextMatchs as $m):
                         $d = new DateTimeImmutable($m['date_match'], new DateTimeZone('Europe/Paris'));
-                        $badge = get_match_status_badge($m['statut'] ?? 'scheduled', $m['minute_actuelle'] ?? null);
+                        $badge = get_match_status_badge($m);
                         $score = format_score($m['score_equipe_1'] ?? null, $m['score_equipe_2'] ?? null);
-                        $isLive = is_match_live($m['statut'] ?? 'scheduled');
+                        $isLive = is_match_live($m);
                     ?>
                         <a href="/matchs/<?php echo e($m['slug']); ?>" class="relative py-md border-b border-primary/20 group cursor-pointer transition-all duration-300 hover:border-primary/50">
                             <div class="flex justify-between items-start mb-md relative z-10">
@@ -119,13 +125,23 @@ if ($featuredMatch) {
                             </div>
                             <div class="flex-1 flex flex-col justify-center gap-sm relative z-10 mt-auto">
                                 <div class="flex justify-between items-center pb-sm">
-                                    <span class="font-display-lg text-2xl md:text-3xl text-on-surface"><?php echo e($m['equipe_1']); ?></span>
+                                    <span class="font-display-lg text-2xl md:text-3xl text-on-surface flex items-center gap-3">
+                                        <?php if (!empty($m['image_path'])): ?>
+                                            <img src="<?php echo e($m['image_path']); ?>" alt="" class="h-8 w-8 object-contain drop-shadow-[0_0_4px_rgba(255,255,255,0.15)] bg-black/10 p-0.5 rounded border border-white/5 flex-shrink-0">
+                                        <?php endif; ?>
+                                        <span><?php echo e($m['equipe_1']); ?></span>
+                                    </span>
                                     <?php if ($score): ?>
                                         <span class="font-display-lg text-3xl md:text-4xl text-primary-container neon-text-gold"><?php echo e(explode(' - ', $score)[0]); ?></span>
                                     <?php endif; ?>
                                 </div>
                                 <div class="flex justify-between items-center pt-xs">
-                                    <span class="font-display-lg text-2xl md:text-3xl text-on-surface/80"><?php echo e($m['equipe_2']); ?></span>
+                                    <span class="font-display-lg text-2xl md:text-3xl text-on-surface/80 flex items-center gap-3">
+                                        <?php if (!empty($m['image_path_away'])): ?>
+                                            <img src="<?php echo e($m['image_path_away']); ?>" alt="" class="h-8 w-8 object-contain drop-shadow-[0_0_4px_rgba(255,255,255,0.15)] bg-black/10 p-0.5 rounded border border-white/5 flex-shrink-0">
+                                        <?php endif; ?>
+                                        <span><?php echo e($m['equipe_2']); ?></span>
+                                    </span>
                                     <?php if ($score): ?>
                                         <span class="font-display-lg text-3xl md:text-4xl text-primary-container neon-text-gold"><?php echo e(explode(' - ', $score)[1]); ?></span>
                                     <?php endif; ?>

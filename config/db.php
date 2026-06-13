@@ -56,26 +56,59 @@ function e(string $s): string
 date_default_timezone_set('Europe/Paris');
 
 /**
- * Retourne le badge de statut du match avec minute si live
- * Exemples: "LIVE 45'", "UPCOMING", "FINISHED"
+ * Retourne le badge de statut du match de manière dynamique en fonction du temps écoulé
  */
-function get_match_status_badge(?string $statut, ?int $minute = null): string
+function get_match_status_badge(array $match): string
 {
-    if ($statut === 'live') {
-        return 'LIVE' . ($minute !== null ? " {$minute}'" : '');
-    }
-    if ($statut === 'finished') {
+    $dbStatut = $match['statut'] ?? 'scheduled';
+    if ($dbStatut === 'finished') {
         return 'FINISHED';
     }
+
+    $startTime = isset($match['date_match']) ? strtotime($match['date_match']) : 0;
+    if ($startTime === 0) {
+        return 'UPCOMING';
+    }
+
+    $now = time();
+    $diff = $now - $startTime;
+
+    // En cours : entre le début et 120 minutes plus tard
+    if ($diff >= 0 && $diff <= 120 * 60) {
+        $minute = $match['minute_actuelle'] !== null ? (int)$match['minute_actuelle'] : (int)floor($diff / 60);
+        if ($minute > 90) {
+            $minute = 90;
+        }
+        return "LIVE {$minute}'";
+    }
+
+    // Terminé : plus de 120 minutes après le début
+    if ($diff > 120 * 60) {
+        return 'FINISHED';
+    }
+
     return 'UPCOMING';
 }
 
 /**
- * Vérifie si un match est en direct
+ * Vérifie si un match est en direct de manière dynamique
  */
-function is_match_live(?string $statut): bool
+function is_match_live(array $match): bool
 {
-    return $statut === 'live';
+    $dbStatut = $match['statut'] ?? 'scheduled';
+    if ($dbStatut === 'finished') {
+        return false;
+    }
+
+    $startTime = isset($match['date_match']) ? strtotime($match['date_match']) : 0;
+    if ($startTime === 0) {
+        return false;
+    }
+
+    $now = time();
+    $diff = $now - $startTime;
+
+    return ($diff >= 0 && $diff <= 120 * 60);
 }
 
 /**
@@ -89,4 +122,56 @@ function format_score(?int $score1, ?int $score2): ?string
     return "{$score1} - {$score2}";
 }
 
-// $pdo est disponible pour les inclusions
+/**
+ * Automatiquement met à jour les scores des matchs passés depuis l'API TheSportsDB
+ */
+function auto_update_past_scores(PDO $pdo): void
+{
+    try {
+        // Sélectionne un match passé sans score ou non terminé avec un ID d'événement valide
+        $stmt = $pdo->query("SELECT id, api_event_id FROM matchs WHERE date_match <= NOW() AND api_event_id IS NOT NULL AND (score_equipe_1 IS NULL OR score_equipe_2 IS NULL OR statut != 'finished') LIMIT 1");
+        $match = $stmt->fetch();
+        if (!$match) {
+            return;
+        }
+
+        $eventId = $match['api_event_id'];
+        $ctx = stream_context_create([
+            'http' => [
+                'timeout' => 1.5, // Timeout court de 1.5s pour ne jamais figer la page
+            ]
+        ]);
+
+        $url = "https://www.thesportsdb.com/api/v1/json/3/lookupevent.php?id=" . urlencode($eventId);
+        $response = @file_get_contents($url, false, $ctx);
+        if ($response === false) {
+            return;
+        }
+
+        $data = json_decode($response, true);
+        if (isset($data['events'][0])) {
+            $event = $data['events'][0];
+            $score1 = $event['intHomeScore'];
+            $score2 = $event['intAwayScore'];
+            
+            if ($score1 !== null && $score2 !== null) {
+                $upStmt = $pdo->prepare("UPDATE matchs SET score_equipe_1 = :s1, score_equipe_2 = :s2, statut = 'finished' WHERE id = :id");
+                $upStmt->execute([
+                    ':s1' => (int)$score1,
+                    ':s2' => (int)$score2,
+                    ':id' => (int)$match['id']
+                ]);
+            } elseif (($event['strStatus'] ?? '') === 'FT') {
+                // Si le match est marqué terminé sur l'API mais sans scores, on évite de tourner en boucle
+                $upStmt = $pdo->prepare("UPDATE matchs SET statut = 'finished' WHERE id = :id");
+                $upStmt->execute([':id' => (int)$match['id']]);
+            }
+        }
+    } catch (Throwable $e) {
+        error_log('Auto score update error: ' . $e->getMessage());
+    }
+}
+
+// Lancement de l'auto-score
+auto_update_past_scores($pdo);
+
