@@ -94,11 +94,7 @@ echo "<script type=\"application/ld+json\">" . json_encode($event, JSON_UNESCAPE
     <div class="mb-8 overflow-hidden rounded-xl border border-white/10 bg-[#1A1A1A] p-8 md:p-12 shadow-[inset_0_0_30px_rgba(212,175,55,0.05)] relative flex flex-col md:flex-row items-center justify-between gap-8 bg-cover bg-center" style="background-image: linear-gradient(rgba(18,18,18,0.95), rgba(18,18,18,0.92)), url('/assets/uploads/hero-bg.jpg');">
       <!-- Team 1 -->
       <div class="flex flex-col items-center text-center flex-1">
-        <?php if (!empty($match['image_path'])): ?>
-          <img src="<?php echo e($match['image_path']); ?>" alt="<?php echo e($e1); ?> logo" class="h-28 w-28 object-contain drop-shadow-[0_0_15px_rgba(212,175,55,0.3)] bg-black/30 p-2 rounded-2xl border border-white/10 transition-transform hover:scale-105 duration-300">
-        <?php else: ?>
-          <div class="h-28 w-28 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-3xl text-gray-500 font-bold">H</div>
-        <?php endif; ?>
+        <?php echo render_team_logo_html($e1, $match['image_path'], 'h-28 w-28 object-contain drop-shadow-[0_0_15px_rgba(212,175,55,0.3)] bg-black/30 p-2 rounded-2xl border border-white/10 transition-transform hover:scale-105 duration-300', mb_substr($e1, 0, 1)); ?>
         <div class="text-2xl font-display text-white mt-4 font-bold tracking-wide"><?php echo e($e1); ?></div>
       </div>
 
@@ -121,11 +117,7 @@ echo "<script type=\"application/ld+json\">" . json_encode($event, JSON_UNESCAPE
 
       <!-- Team 2 -->
       <div class="flex flex-col items-center text-center flex-1">
-        <?php if (!empty($match['image_path_away'])): ?>
-          <img src="<?php echo e($match['image_path_away']); ?>" alt="<?php echo e($e2); ?> logo" class="h-28 w-28 object-contain drop-shadow-[0_0_15px_rgba(212,175,55,0.3)] bg-black/30 p-2 rounded-2xl border border-white/10 transition-transform hover:scale-105 duration-300">
-        <?php else: ?>
-          <div class="h-28 w-28 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-3xl text-gray-500 font-bold">A</div>
-        <?php endif; ?>
+        <?php echo render_team_logo_html($e2, $match['image_path_away'], 'h-28 w-28 object-contain drop-shadow-[0_0_15px_rgba(212,175,55,0.3)] bg-black/30 p-2 rounded-2xl border border-white/10 transition-transform hover:scale-105 duration-300', mb_substr($e2, 0, 1)); ?>
         <div class="text-2xl font-display text-white mt-4 font-bold tracking-wide"><?php echo e($e2); ?></div>
       </div>
     </div>

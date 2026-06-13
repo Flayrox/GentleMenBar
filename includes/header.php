@@ -64,6 +64,72 @@ if (!isset($meta_description)) {
         .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400; }
         body { min-height: 100dvh; }
     </style>
+    <script>
+        function replaceWithEmoji(img, teamName, fallbackText) {
+            const flags = {
+                'france': '🇫🇷',
+                'suisse': '🇨🇭', 'switzerland': '🇨🇭',
+                'qatar': '🇶🇦',
+                'allemagne': '🇩🇪', 'germany': '🇩🇪',
+                'espagne': '🇪🇸', 'spain': '🇪🇸',
+                'italie': '🇮🇹', 'italy': '🇮🇹',
+                'belgique': '🇧🇪', 'belgium': '🇧🇪',
+                'portugal': '🇵🇹',
+                'croatie': '🇭🇷', 'croatia': '🇭🇷',
+                'argentine': '🇦🇷', 'argentina': '🇦🇷',
+                'bresil': '🇧🇷', 'brazil': '🇧🇷',
+                'pays-bas': '🇳🇱', 'netherlands': '🇳🇱',
+                'maroc': '🇲🇦', 'morocco': '🇲🇦',
+                'senegal': '🇸🇳',
+                'japon': '🇯🇵', 'japan': '🇯🇵',
+                'etats-unis': '🇺🇸', 'usa': '🇺🇸',
+                'mexique': '🇲🇽', 'mexico': '🇲🇽',
+                'ethiopie': '🇪🇹', 'ethiopia': '🇪🇹',
+                'canada': '🇨🇦',
+                'bosnie': '🇧🇦', 'bosnia': '🇧🇦',
+                'coree': '🇰🇷', 'korea': '🇰🇷',
+                'republique tcheque': '🇨🇿', 'czech': '🇨🇿',
+                'uruguay': '🇺🇾',
+                'cameroun': '🇨🇲', 'cameroon': '🇨🇲',
+                'algerie': '🇩🇿', 'algeria': '🇩🇿',
+                'tunisie': '🇹🇳', 'tunisia': '🇹🇳',
+                'pays de galles': '🏴󠁧󠁢󠁷󠁬󠁳󠁿', 'wales': '🏴󠁧󠁢󠁷󠁬󠁳󠁿',
+                'ecosse': '🏴󠁧󠁢󠁳󠁣󠁴󠁿', 'scotland': '🏴󠁧󠁢󠁳󠁣󠁴󠁿',
+                'irlande': '🇮🇪', 'ireland': '🇮🇪',
+                'angleterre': '🏴󠁧󠁢󠁥󠁮󠁧󠁿', 'england': '🏴󠁧󠁢󠁥󠁮󠁧󠁿',
+                'nouvelle-zelande': '🇳🇿', 'new zealand': '🇳🇿',
+                'afrique du sud': '🇿🇦', 'south africa': '🇿🇦',
+                'australie': '🇦🇺', 'australia': '🇦🇺',
+                'fidji': '🇫🇯', 'fiji': '🇫🇯',
+                'georgie': '🇬🇪', 'georgia': '🇬🇪',
+                'tonga': '🇹🇴', 'samoa': '🇼🇸',
+                'roumanie': '🇷🇴', 'romania': '🇷🇴',
+                'namibie': '🇳🇦', 'namibia': '🇳🇦'
+            };
+            const nameLower = teamName.toLowerCase().trim();
+            let emoji = '';
+            for (const [key, value] of Object.entries(flags)) {
+                if (nameLower.includes(key)) {
+                    emoji = value;
+                    break;
+                }
+            }
+            const container = document.createElement('div');
+            container.className = img.className + ' flex items-center justify-center select-none';
+            if (emoji) {
+                container.textContent = emoji;
+                container.style.fontSize = '1.25em';
+            } else {
+                container.textContent = fallbackText;
+                if (!img.className.includes('h-20') && !img.className.includes('h-28')) {
+                    container.classList.add('rounded-full', 'bg-white/5', 'border', 'border-white/10', 'font-semibold', 'text-[10px]', 'text-gray-500');
+                } else {
+                    container.classList.add('rounded-2xl', 'bg-white/5', 'border', 'border-white/10', 'font-bold', 'text-2xl', 'text-gray-500');
+                }
+            }
+            img.parentNode.replaceChild(container, img);
+        }
+    </script>
 </head>
 <body class="bg-background text-on-background font-body-base antialiased min-h-screen flex flex-col pb-24 md:pb-0 relative">
 

@@ -360,6 +360,19 @@ if (is_admin_authenticated() && $_SERVER['REQUEST_METHOD'] === 'POST') {
         redirect_admin('design');
       }
 
+        if ($action === 'save_auto_feature_config') {
+            $autoFeat = $_POST['auto_feat'] ?? [];
+            if (!is_array($autoFeat)) {
+                $autoFeat = [];
+            }
+            upsert_site_config($pdo, [
+                'auto_feature_competitions' => json_encode($autoFeat)
+            ]);
+            $config['auto_feature_competitions'] = json_encode($autoFeat);
+            set_flash('success', 'Filtres de mise à l\'affiche automatique mis à jour.');
+            redirect_admin('matchs');
+        }
+
         if ($action === 'disable_match') {
             $id = (int)($_POST['id'] ?? 0);
             $stmt = $pdo->prepare('UPDATE matchs SET is_active = 0 WHERE id = :id');
@@ -583,8 +596,9 @@ $heroBgImage = config_value('hero_bg_image', '/assets/uploads/hero-bg.jpg');
             </p>
 
             <div class="mt-4">
-              <span class="text-[10px] text-gray-500 uppercase tracking-wider block mb-2 font-semibold font-body">Championnats & Calendriers synchronisés :</span>
-              <div class="flex flex-wrap gap-1.5">
+              <span class="text-[10px] text-gray-500 uppercase tracking-wider block mb-2 font-semibold font-body">Championnats & Calendriers synchronisés (Foot: iCal / Rugby: SportsDB) :</span>
+              <div class="flex flex-wrap gap-1.5 mb-4">
+                <span class="rounded-full bg-white/5 border border-white/10 px-2 py-0.5 text-[10px] text-gray-300">⚽ Coupe du Monde</span>
                 <span class="rounded-full bg-white/5 border border-white/10 px-2 py-0.5 text-[10px] text-gray-300">⚽ Ligue 1</span>
                 <span class="rounded-full bg-white/5 border border-white/10 px-2 py-0.5 text-[10px] text-gray-300">⚽ Champions League</span>
                 <span class="rounded-full bg-white/5 border border-white/10 px-2 py-0.5 text-[10px] text-gray-300">⚽ Europa League</span>
@@ -594,6 +608,42 @@ $heroBgImage = config_value('hero_bg_image', '/assets/uploads/hero-bg.jpg');
                 <span class="rounded-full bg-white/5 border border-white/10 px-2 py-0.5 text-[10px] text-gray-300">🏉 Top 14</span>
                 <span class="rounded-full bg-white/5 border border-white/10 px-2 py-0.5 text-[10px] text-gray-300">🏉 Six Nations</span>
               </div>
+              
+              <form method="post" class="border-t border-white/10 pt-4">
+                <input type="hidden" name="csrf_token" value="<?php echo e($_SESSION['csrf_token']); ?>">
+                <input type="hidden" name="action" value="save_auto_feature_config">
+                
+                <span class="text-[10px] text-gray-400 uppercase tracking-wider block mb-3 font-semibold font-body">⭐️ Mettre automatiquement à l'affiche :</span>
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  <?php
+                  $autoFeatJson = config_value('auto_feature_competitions', '["Coupe du Monde"]');
+                  $autoFeatList = json_decode($autoFeatJson, true) ?: [];
+                  $allCompetitions = [
+                      'Coupe du Monde' => '⚽ Coupe du Monde',
+                      'Ligue 1' => '⚽ Ligue 1',
+                      'Champions League' => '⚽ Champions League',
+                      'Europa League' => '⚽ Europa League',
+                      'Premier League' => '⚽ Premier League',
+                      'La Liga' => '⚽ La Liga',
+                      'Serie A' => '⚽ Serie A',
+                      'Top 14' => '🏉 Top 14',
+                      'Six Nations' => '🏉 Six Nations'
+                  ];
+                  foreach ($allCompetitions as $key => $label):
+                      $checked = in_array($key, $autoFeatList, true) ? 'checked' : '';
+                  ?>
+                    <label class="flex items-center gap-2 text-xs text-gray-300 hover:text-white cursor-pointer select-none">
+                      <input type="checkbox" name="auto_feat[]" value="<?php echo e($key); ?>" <?php echo $checked; ?> class="w-4 h-4 rounded bg-[#121212] border-white/10 text-amber-400 focus:ring-amber-400 cursor-pointer">
+                      <span><?php echo e($label); ?></span>
+                    </label>
+                  <?php endforeach; ?>
+                </div>
+                <div class="mt-4 flex justify-end">
+                  <button type="submit" class="rounded-lg bg-amber-400 px-4 py-2 text-xs font-semibold text-black hover:bg-amber-300 transition-all shadow-[0_0_10px_rgba(212,175,55,0.15)]">
+                    Enregistrer l'affiche auto
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
 
@@ -721,8 +771,10 @@ $heroBgImage = config_value('hero_bg_image', '/assets/uploads/hero-bg.jpg');
                   $d = new DateTimeImmutable($match['date_match']);
                   $badge = get_match_status_badge($match);
                   $isLive = is_match_live($match);
-                  $homeLogo = !empty($match['image_path']) ? $match['image_path'] : null;
-                  $awayLogo = !empty($match['image_path_away']) ? $match['image_path_away'] : null;
+                  $homeLogo = !empty($match['image_path']) ? $match['image_path'] : get_team_logo($match['equipe_1']);
+                  $awayLogo = !empty($match['image_path_away']) ? $match['image_path_away'] : get_team_logo($match['equipe_2']);
+                  if ($homeLogo === '') { $homeLogo = null; }
+                  if ($awayLogo === '') { $awayLogo = null; }
                   
                   // Vérifier si le match est aujourd'hui
                   $matchDate = $d->format('Y-m-d');
@@ -743,17 +795,9 @@ $heroBgImage = config_value('hero_bg_image', '/assets/uploads/hero-bg.jpg');
                     <td class="px-4 py-4">
                       <div class="flex items-center gap-3">
                         <div class="flex items-center gap-1.5 flex-shrink-0">
-                          <?php if ($homeLogo): ?>
-                            <img src="<?php echo e($homeLogo); ?>" alt="" class="h-8 w-8 object-contain">
-                          <?php else: ?>
-                            <div class="h-8 w-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-[10px] text-gray-500 font-semibold">H</div>
-                          <?php endif; ?>
+                          <?php echo render_team_logo_html($match['equipe_1'], $match['image_path'], 'h-8 w-8 object-contain', mb_substr($match['equipe_1'], 0, 1)); ?>
                           <span class="text-gray-500 text-xs">vs</span>
-                          <?php if ($awayLogo): ?>
-                            <img src="<?php echo e($awayLogo); ?>" alt="" class="h-8 w-8 object-contain">
-                          <?php else: ?>
-                            <div class="h-8 w-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-[10px] text-gray-500 font-semibold">A</div>
-                          <?php endif; ?>
+                          <?php echo render_team_logo_html($match['equipe_2'], $match['image_path_away'], 'h-8 w-8 object-contain', mb_substr($match['equipe_2'], 0, 1)); ?>
                         </div>
                         <div>
                           <div class="font-semibold text-white"><?php echo e($match['equipe_1']); ?> <span class="text-gray-500 font-normal">c.</span> <?php echo e($match['equipe_2']); ?></div>
@@ -1144,6 +1188,71 @@ $heroBgImage = config_value('hero_bg_image', '/assets/uploads/hero-bg.jpg');
         btn.classList.remove('opacity-80', 'cursor-not-allowed');
         spinner.classList.add('hidden');
       }
+    }
+
+    function replaceWithEmoji(img, teamName, fallbackText) {
+      const flags = {
+        'france': '🇫🇷',
+        'suisse': '🇨🇭', 'switzerland': '🇨🇭',
+        'qatar': '🇶🇦',
+        'allemagne': '🇩🇪', 'germany': '🇩🇪',
+        'espagne': '🇪🇸', 'spain': '🇪🇸',
+        'italie': '🇮🇹', 'italy': '🇮🇹',
+        'belgique': '🇧🇪', 'belgium': '🇧🇪',
+        'portugal': '🇵🇹',
+        'croatie': '🇭🇷', 'croatia': '🇭🇷',
+        'argentine': '🇦🇷', 'argentina': '🇦🇷',
+        'bresil': '🇧🇷', 'brazil': '🇧🇷',
+        'pays-bas': '🇳🇱', 'netherlands': '🇳🇱',
+        'maroc': '🇲🇦', 'morocco': '🇲🇦',
+        'senegal': '🇸🇳',
+        'japon': '🇯🇵', 'japan': '🇯🇵',
+        'etats-unis': '🇺🇸', 'usa': '🇺🇸',
+        'mexique': '🇲🇽', 'mexico': '🇲🇽',
+        'ethiopie': '🇪🇹', 'ethiopia': '🇪🇹',
+        'canada': '🇨🇦',
+        'bosnie': '🇧🇦', 'bosnia': '🇧🇦',
+        'coree': '🇰🇷', 'korea': '🇰🇷',
+        'republique tcheque': '🇨🇿', 'czech': '🇨🇿',
+        'uruguay': '🇺🇾',
+        'cameroun': '🇨🇲', 'cameroon': '🇨🇲',
+        'algerie': '🇩🇿', 'algeria': '🇩🇿',
+        'tunisie': '🇹🇳', 'tunisia': '🇹🇳',
+        'pays de galles': '🏴󠁧󠁢󠁷󠁬󠁳󠁿', 'wales': '🏴󠁧󠁢󠁷󠁬󠁳󠁿',
+        'ecosse': '🏴󠁧󠁢󠁳󠁣󠁴󠁿', 'scotland': '🏴󠁧󠁢󠁳󠁣󠁴󠁿',
+        'irlande': '🇮🇪', 'ireland': '🇮🇪',
+        'angleterre': '🏴󠁧󠁢󠁥󠁮󠁧󠁿', 'england': '🏴󠁧󠁢󠁥󠁮󠁧󠁿',
+        'nouvelle-zelande': '🇳🇿', 'new zealand': '🇳🇿',
+        'afrique du sud': '🇿🇦', 'south africa': '🇿🇦',
+        'australie': '🇦🇺', 'australia': '🇦🇺',
+        'fidji': '🇫🇯', 'fiji': '🇫🇯',
+        'georgie': '🇬🇪', 'georgia': '🇬🇪',
+        'tonga': '🇹🇴', 'samoa': '🇼🇸',
+        'roumanie': '🇷🇴', 'romania': '🇷🇴',
+        'namibie': '🇳🇦', 'namibia': '🇳🇦'
+      };
+      const nameLower = teamName.toLowerCase().trim();
+      let emoji = '';
+      for (const [key, value] of Object.entries(flags)) {
+        if (nameLower.includes(key)) {
+          emoji = value;
+          break;
+        }
+      }
+      const container = document.createElement('div');
+      container.className = img.className + ' flex items-center justify-center select-none';
+      if (emoji) {
+        container.textContent = emoji;
+        container.style.fontSize = '1.25em';
+      } else {
+        container.textContent = fallbackText;
+        if (!img.className.includes('h-20') && !img.className.includes('h-28')) {
+          container.classList.add('rounded-full', 'bg-white/5', 'border', 'border-white/10', 'font-semibold', 'text-[10px]', 'text-gray-500');
+        } else {
+          container.classList.add('rounded-2xl', 'bg-white/5', 'border', 'border-white/10', 'font-bold', 'text-2xl', 'text-gray-500');
+        }
+      }
+      img.parentNode.replaceChild(container, img);
     }
   </script>
 </body>

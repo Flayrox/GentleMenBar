@@ -10,9 +10,9 @@ if ($isLocal) {
     $dbPass = '';
 } else {
     $dbHost = 'localhost';
-    $dbName = 'u123456789_nom_de_la_base';
-    $dbUser = 'u123456789_utilisateur';
-    $dbPass = 'MOT_DE_PASSE_ICI';
+    $dbName = 'u854953942_gentlemen';
+    $dbUser = 'u854953942_gentlemen';
+    $dbPass = 'nVUtuFvr9jLWK7U';
 }
 
 
@@ -260,4 +260,153 @@ function generate_unique_match_slug(PDO $pdo, string $equipe1, string $equipe2, 
         $index++;
     }
 }
+
+/**
+ * Retourne un logo par défaut pour les équipes très populaires
+ */
+function get_team_logo(string $teamName): string
+{
+    $team = strtolower(trim($teamName));
+    $logos = [
+        'psg' => 'https://upload.wikimedia.org/wikipedia/fr/8/86/Paris_Saint-Germain_Logo.svg',
+        'paris sg' => 'https://upload.wikimedia.org/wikipedia/fr/8/86/Paris_Saint-Germain_Logo.svg',
+        'paris saint-germain' => 'https://upload.wikimedia.org/wikipedia/fr/8/86/Paris_Saint-Germain_Logo.svg',
+        'marseille' => 'https://upload.wikimedia.org/wikipedia/fr/4/43/Logo_Olympique_de_Marseille.svg',
+        'om' => 'https://upload.wikimedia.org/wikipedia/fr/4/43/Logo_Olympique_de_Marseille.svg',
+        'olympique de marseille' => 'https://upload.wikimedia.org/wikipedia/fr/4/43/Logo_Olympique_de_Marseille.svg',
+        'france' => 'https://upload.wikimedia.org/wikipedia/commons/c/c3/Flag_of_France.svg',
+        'real madrid' => 'https://upload.wikimedia.org/wikipedia/fr/c/c7/Logo_Real_Madrid.svg',
+        'barcelona' => 'https://upload.wikimedia.org/wikipedia/fr/a/a1/Logo_FC_Barcelona.svg',
+        'barca' => 'https://upload.wikimedia.org/wikipedia/fr/a/a1/Logo_FC_Barcelona.svg',
+        'fc barcelone' => 'https://upload.wikimedia.org/wikipedia/fr/a/a1/Logo_FC_Barcelona.svg',
+        'stade toulousain' => 'https://upload.wikimedia.org/wikipedia/fr/1/12/Logo_Stade_Toulousain_2024.svg',
+        'toulouse' => 'https://upload.wikimedia.org/wikipedia/fr/1/12/Logo_Stade_Toulousain_2024.svg',
+        'suisse' => 'https://upload.wikimedia.org/wikipedia/commons/f/f3/Flag_of_Switzerland.svg',
+        'switzerland' => 'https://upload.wikimedia.org/wikipedia/commons/f/f3/Flag_of_Switzerland.svg',
+        'qatar' => 'https://upload.wikimedia.org/wikipedia/commons/6/65/Flag_of_Qatar.svg',
+    ];
+
+    foreach ($logos as $key => $url) {
+        if (str_contains($team, $key)) {
+            return $url;
+        }
+    }
+    return '';
+}
+
+/**
+ * Retourne le drapeau emoji d'un pays si détecté
+ */
+function get_country_emoji(string $teamName): string
+{
+    $name = strtolower(trim($teamName));
+    $flags = [
+        'france' => '🇫🇷',
+        'suisse' => '🇨🇭',
+        'switzerland' => '🇨🇭',
+        'qatar' => '🇶🇦',
+        'allemagne' => '🇩🇪',
+        'germany' => '🇩🇪',
+        'espagne' => '🇪🇸',
+        'spain' => '🇪🇸',
+        'italie' => '🇮🇹',
+        'italy' => '🇮🇹',
+        'belgique' => '🇧🇪',
+        'belgium' => '🇧🇪',
+        'portugal' => '🇵🇹',
+        'croatie' => '🇭🇷',
+        'croatia' => '🇭🇷',
+        'argentine' => '🇦🇷',
+        'argentina' => '🇦🇷',
+        'bresil' => '🇧🇷',
+        'brazil' => '🇧🇷',
+        'pays-bas' => '🇳🇱',
+        'netherlands' => '🇳🇱',
+        'maroc' => '🇲🇦',
+        'morocco' => '🇲🇦',
+        'senegal' => '🇸🇳',
+        'japon' => '🇯🇵',
+        'japan' => '🇯🇵',
+        'etats-unis' => '🇺🇸',
+        'usa' => '🇺🇸',
+        'mexique' => '🇲🇽',
+        'mexico' => '🇲🇽',
+        'ethiopie' => '🇪🇹',
+        'ethiopia' => '🇪🇹',
+        'canada' => '🇨🇦',
+        'bosnie' => '🇧🇦',
+        'bosnia' => '🇧🇦',
+        'coree' => '🇰🇷',
+        'korea' => '🇰🇷',
+        'republique tcheque' => '🇨🇿',
+        'czech' => '🇨🇿',
+        'uruguay' => '🇺🇾',
+        'cameroun' => '🇨🇲',
+        'cameroon' => '🇨🇲',
+        'algerie' => '🇩🇿',
+        'algeria' => '🇩🇿',
+        'tunisie' => '🇹🇳',
+        'tunisia' => '🇹🇳',
+        'pays de galles' => '🏴󠁧󠁢󠁷󠁬󠁳󠁿',
+        'wales' => '🏴󠁧󠁢󠁷󠁬󠁳󠁿',
+        'ecosse' => '🏴󠁧󠁢󠁳󠁣󠁴󠁿',
+        'scotland' => '🏴󠁧󠁢󠁳󠁣󠁴󠁿',
+        'irlande' => '🇮🇪',
+        'ireland' => '🇮🇪',
+        'angleterre' => '🏴󠁧󠁢󠁥󠁮󠁧󠁿',
+        'england' => '🏴󠁧󠁢󠁥󠁮󠁧󠁿',
+        'nouvelle-zelande' => '🇳🇿',
+        'new zealand' => '🇳🇿',
+        'afrique du sud' => '🇿🇦',
+        'south africa' => '🇿🇦',
+        'australie' => '🇦🇺',
+        'australia' => '🇦🇺',
+        'fidji' => '🇫🇯',
+        'fiji' => '🇫🇯',
+        'georgie' => '🇬🇪',
+        'georgia' => '🇬🇪',
+        'tonga' => '🇹🇴',
+        'samoa' => '🇼🇸',
+        'roumanie' => '🇷🇴',
+        'romania' => '🇷🇴',
+        'namibie' => '🇳🇦',
+        'namibia' => '🇳🇦',
+    ];
+    
+    foreach ($flags as $key => $emoji) {
+        if (str_contains($name, $key)) {
+            return $emoji;
+        }
+    }
+    return '';
+}
+
+/**
+ * Retourne le code HTML pour afficher le logo d'une équipe avec gestion intelligente des fallbacks
+ */
+function render_team_logo_html(string $teamName, ?string $dbLogoPath, string $imgClass = 'h-8 w-8 object-contain', string $textFallback = 'H'): string
+{
+    $logoUrl = !empty($dbLogoPath) ? $dbLogoPath : get_team_logo($teamName);
+    $escapedTeam = e($teamName);
+    
+    if ($logoUrl !== '') {
+        $escapedLogo = e($logoUrl);
+        $escapedFallback = e($textFallback);
+        return '<img src="' . $escapedLogo . '" alt="' . $escapedTeam . '" class="' . $imgClass . '" onerror="replaceWithEmoji(this, ' . htmlspecialchars(json_encode($teamName), ENT_QUOTES, 'UTF-8') . ', ' . htmlspecialchars(json_encode($textFallback), ENT_QUOTES, 'UTF-8') . ');">';
+    }
+    
+    $emoji = get_country_emoji($teamName);
+    if ($emoji !== '') {
+        return '<div class="' . $imgClass . ' flex items-center justify-center text-lg select-none" title="' . $escapedTeam . '">' . $emoji . '</div>';
+    }
+    
+    // Fallback avec initiales et style approprié selon la taille
+    $isLarge = str_contains($imgClass, 'h-20') || str_contains($imgClass, 'h-28');
+    $styleClass = $isLarge 
+        ? 'rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-3xl text-gray-500 font-bold'
+        : 'rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-[10px] text-gray-500 font-semibold';
+        
+    return '<div class="' . $imgClass . ' ' . $styleClass . ' select-none" title="' . $escapedTeam . '">' . e($textFallback) . '</div>';
+}
+
 

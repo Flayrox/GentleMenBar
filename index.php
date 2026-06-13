@@ -10,9 +10,15 @@ $stmtFeatured = $pdo->query('SELECT * FROM matchs WHERE is_active = 1 AND is_fea
 $featuredMatch = $stmtFeatured->fetch();
 
 if (!$featuredMatch) {
-    // Fallback automatique sur le prochain match à venir dans les 15 prochains jours
-    $stmtFeaturedAuto = $pdo->query('SELECT * FROM matchs WHERE is_active = 1 AND date_match >= NOW() AND date_match <= DATE_ADD(NOW(), INTERVAL 15 DAY) ORDER BY date_match ASC LIMIT 1');
-    $featuredMatch = $stmtFeaturedAuto->fetch() ?: null;
+    // Fallback automatique sur le prochain match à venir dans les 15 prochains jours qui appartient à une compétition autorisée
+    $autoFeatJson = config_value('auto_feature_competitions', '["Coupe du Monde"]');
+    $autoFeatList = json_decode($autoFeatJson, true) ?: [];
+    if (!empty($autoFeatList)) {
+        $inPlaceholders = implode(',', array_fill(0, count($autoFeatList), '?'));
+        $stmtFeaturedAuto = $pdo->prepare("SELECT * FROM matchs WHERE is_active = 1 AND date_match >= NOW() AND date_match <= DATE_ADD(NOW(), INTERVAL 15 DAY) AND competition IN ($inPlaceholders) ORDER BY date_match ASC LIMIT 1");
+        $stmtFeaturedAuto->execute($autoFeatList);
+        $featuredMatch = $stmtFeaturedAuto->fetch() ?: null;
+    }
 }
 
 // Récupérer les prochains matchs actifs (exclure le match à l'affiche de la liste des petits blocs s'il est déjà en vedette) dans les 15 prochains jours
@@ -56,13 +62,9 @@ if ($featuredMatch) {
             <?php if ($featuredMatch): ?>
                 <span class="inline-flex items-center gap-2 font-label-caps text-label-caps text-primary tracking-[0.3em] uppercase mb-4 animate-pulse">⭐ MATCH À L'AFFICHE</span>
                 <div class="flex items-center gap-6 mb-6">
-                    <?php if (!empty($featuredMatch['image_path'])): ?>
-                        <img src="<?php echo e($featuredMatch['image_path']); ?>" alt="<?php echo e($featuredMatch['equipe_1']); ?>" class="h-20 w-20 object-contain drop-shadow-[0_0_12px_rgba(212,175,55,0.3)] bg-black/20 p-1 rounded-lg border border-white/5">
-                    <?php endif; ?>
+                    <?php echo render_team_logo_html($featuredMatch['equipe_1'], $featuredMatch['image_path'], 'h-20 w-20 object-contain drop-shadow-[0_0_12px_rgba(212,175,55,0.3)] bg-black/20 p-1 rounded-lg border border-white/5', mb_substr($featuredMatch['equipe_1'], 0, 1)); ?>
                     <span class="text-2xl font-display text-primary/60">VS</span>
-                    <?php if (!empty($featuredMatch['image_path_away'])): ?>
-                        <img src="<?php echo e($featuredMatch['image_path_away']); ?>" alt="<?php echo e($featuredMatch['equipe_2']); ?>" class="h-20 w-20 object-contain drop-shadow-[0_0_12px_rgba(212,175,55,0.3)] bg-black/20 p-1 rounded-lg border border-white/5">
-                    <?php endif; ?>
+                    <?php echo render_team_logo_html($featuredMatch['equipe_2'], $featuredMatch['image_path_away'], 'h-20 w-20 object-contain drop-shadow-[0_0_12px_rgba(212,175,55,0.3)] bg-black/20 p-1 rounded-lg border border-white/5', mb_substr($featuredMatch['equipe_2'], 0, 1)); ?>
                 </div>
             <?php else: ?>
                 <span class="font-label-caps text-label-caps text-primary-container/70 tracking-[0.3em] uppercase mb-4"><?php echo e(config_value('site_tagline')); ?></span>
@@ -126,9 +128,7 @@ if ($featuredMatch) {
                             <div class="flex-1 flex flex-col justify-center gap-sm relative z-10 mt-auto">
                                 <div class="flex justify-between items-center pb-sm">
                                     <span class="font-display-lg text-2xl md:text-3xl text-on-surface flex items-center gap-3">
-                                        <?php if (!empty($m['image_path'])): ?>
-                                            <img src="<?php echo e($m['image_path']); ?>" alt="" class="h-8 w-8 object-contain drop-shadow-[0_0_4px_rgba(255,255,255,0.15)] bg-black/10 p-0.5 rounded border border-white/5 flex-shrink-0">
-                                        <?php endif; ?>
+                                        <?php echo render_team_logo_html($m['equipe_1'], $m['image_path'], 'h-8 w-8 object-contain drop-shadow-[0_0_4px_rgba(255,255,255,0.15)] bg-black/10 p-0.5 rounded border border-white/5 flex-shrink-0', mb_substr($m['equipe_1'], 0, 1)); ?>
                                         <span><?php echo e($m['equipe_1']); ?></span>
                                     </span>
                                     <?php if ($score): ?>
@@ -137,9 +137,7 @@ if ($featuredMatch) {
                                 </div>
                                 <div class="flex justify-between items-center pt-xs">
                                     <span class="font-display-lg text-2xl md:text-3xl text-on-surface/80 flex items-center gap-3">
-                                        <?php if (!empty($m['image_path_away'])): ?>
-                                            <img src="<?php echo e($m['image_path_away']); ?>" alt="" class="h-8 w-8 object-contain drop-shadow-[0_0_4px_rgba(255,255,255,0.15)] bg-black/10 p-0.5 rounded border border-white/5 flex-shrink-0">
-                                        <?php endif; ?>
+                                        <?php echo render_team_logo_html($m['equipe_2'], $m['image_path_away'], 'h-8 w-8 object-contain drop-shadow-[0_0_4px_rgba(255,255,255,0.15)] bg-black/10 p-0.5 rounded border border-white/5 flex-shrink-0', mb_substr($m['equipe_2'], 0, 1)); ?>
                                         <span><?php echo e($m['equipe_2']); ?></span>
                                     </span>
                                     <?php if ($score): ?>
