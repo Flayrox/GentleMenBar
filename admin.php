@@ -194,44 +194,58 @@ if (is_admin_authenticated() && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = (string)($_POST['action'] ?? '');
 
     try {
-      if ($action === 'import_match_api') {
+      if ($action === 'add_manual_match') {
         $equipe1 = trim((string)($_POST['equipe_1'] ?? ''));
         $equipe2 = trim((string)($_POST['equipe_2'] ?? ''));
         $competition = trim((string)($_POST['competition'] ?? ''));
         $dateMatch = trim((string)($_POST['date_match'] ?? ''));
-        $imagePathHome = trim((string)($_POST['image_path_home'] ?? ''));
-        $imagePathAway = trim((string)($_POST['image_path_away'] ?? ''));
         $sport = trim((string)($_POST['sport'] ?? 'Soccer'));
-        $apiEventId = trim((string)($_POST['api_event_id'] ?? ''));
         $isFeatured = isset($_POST['is_featured']) ? 1 : 0;
 
         if ($equipe1 === '' || $equipe2 === '' || $dateMatch === '') {
-            throw new RuntimeException('Données de match incomplètes.');
+            throw new RuntimeException('Veuillez remplir les équipes et la date.');
+        }
+
+        $normalizedDate = normalize_datetime_input($dateMatch);
+        if ($normalizedDate === null) {
+            throw new RuntimeException('Format de date et heure invalide.');
         }
 
         if ($isFeatured === 1) {
             $pdo->exec('UPDATE `matchs` SET `is_featured` = 0');
         }
 
-        $slug = generate_unique_match_slug($pdo, $equipe1, $equipe2, $dateMatch);
+        // Tenter de trouver s'il y a déjà un match pour ces équipes à +/- 3 jours
+        $slug = null;
+        $dayStart = date('Y-m-d 00:00:00', strtotime($normalizedDate) - 3 * 86400);
+        $dayEnd = date('Y-m-d 23:59:59', strtotime($normalizedDate) + 3 * 86400);
+        $checkStmt = $pdo->prepare('SELECT slug FROM matchs WHERE equipe_1 = :e1 AND equipe_2 = :e2 AND date_match BETWEEN :dstart AND :dend LIMIT 1');
+        $checkStmt->execute([
+            ':e1' => $equipe1,
+            ':e2' => $equipe2,
+            ':dstart' => $dayStart,
+            ':dend' => $dayEnd,
+        ]);
+        $slug = $checkStmt->fetchColumn() ?: null;
 
-        $stmt = $pdo->prepare('INSERT INTO matchs (slug, equipe_1, equipe_2, competition, date_match, image_path, image_path_away, sport, api_event_id, statut, is_active, is_featured) 
-            VALUES (:slug, :equipe_1, :equipe_2, :competition, :date_match, :image_path_home, :image_path_away, :sport, :api_event_id, \'scheduled\', 1, :is_featured) 
-            ON DUPLICATE KEY UPDATE is_active = 1, is_featured = VALUES(is_featured), date_match = VALUES(date_match), image_path = VALUES(image_path), image_path_away = VALUES(image_path_away)');
+        if ($slug === null) {
+            $slug = generate_unique_match_slug($pdo, $equipe1, $equipe2, $normalizedDate);
+        }
+
+        $stmt = $pdo->prepare('INSERT INTO matchs (slug, equipe_1, equipe_2, competition, date_match, sport, statut, is_active, is_featured) 
+            VALUES (:slug, :equipe_1, :equipe_2, :competition, :date_match, :sport, \'scheduled\', 1, :is_featured) 
+            ON DUPLICATE KEY UPDATE is_active = 1, is_featured = VALUES(is_featured), date_match = VALUES(date_match), competition = VALUES(competition), sport = VALUES(sport)');
         $stmt->execute([
             ':slug' => $slug,
             ':equipe_1' => $equipe1,
             ':equipe_2' => $equipe2,
-            ':competition' => $competition,
-            ':date_match' => $dateMatch,
-            ':image_path_home' => $imagePathHome !== '' ? $imagePathHome : null,
-            ':image_path_away' => $imagePathAway !== '' ? $imagePathAway : null,
+            ':competition' => $competition !== '' ? $competition : 'Autre',
+            ':date_match' => $normalizedDate,
             ':sport' => $sport,
-            ':api_event_id' => $apiEventId !== '' ? $apiEventId : null,
             ':is_featured' => $isFeatured,
         ]);
 
-        set_flash('success', 'Match "' . $equipe1 . ' vs ' . $equipe2 . '" importé avec succès !');
+        set_flash('success', 'Match "' . $equipe1 . ' vs ' . $equipe2 . '" enregistré avec succès !');
         redirect_admin('matchs');
       }
 
@@ -249,89 +263,6 @@ if (is_admin_authenticated() && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt = $pdo->prepare('UPDATE matchs SET is_featured = 0 WHERE id = :id');
         $stmt->execute([':id' => $id]);
         set_flash('success', 'Match retiré de l\'affiche.');
-        redirect_admin('matchs');
-      }
-
-      if ($action === 'bulk_sync_matchs') {
-        $fixturesJson = $_POST['fixtures_json'] ?? '[]';
-        $fixtures = json_decode($fixturesJson, true) ?: [];
-
-        if (empty($fixtures)) {
-            throw new RuntimeException('Aucun match sélectionné pour la synchronisation.');
-        }
-
-        $importedCount = 0;
-        foreach ($fixtures as $fix) {
-            $equipe1 = trim((string)($fix['equipe_1'] ?? ''));
-            $equipe2 = trim((string)($fix['equipe_2'] ?? ''));
-            $competition = trim((string)($fix['competition'] ?? ''));
-            $dateMatch = trim((string)($fix['date_match'] ?? ''));
-            $imagePathHome = trim((string)($fix['image_path_home'] ?? ''));
-            $imagePathAway = trim((string)($fix['image_path_away'] ?? ''));
-            $sport = trim((string)($fix['sport'] ?? 'Soccer'));
-            $apiEventId = trim((string)($fix['api_event_id'] ?? ''));
-
-            if ($equipe1 === '' || $equipe2 === '' || $dateMatch === '') {
-                continue;
-            }
-
-            $exists = false;
-            if ($apiEventId !== '') {
-                $checkStmt = $pdo->prepare('SELECT COUNT(*) FROM matchs WHERE api_event_id = :api_event_id');
-                $checkStmt->execute([':api_event_id' => $apiEventId]);
-                if ((int)$checkStmt->fetchColumn() > 0) {
-                    $exists = true;
-                }
-            }
-
-            if (!$exists) {
-                $dayStart = date('Y-m-d 00:00:00', strtotime($dateMatch));
-                $dayEnd = date('Y-m-d 23:59:59', strtotime($dateMatch));
-                $checkStmt = $pdo->prepare('SELECT COUNT(*) FROM matchs WHERE equipe_1 = :e1 AND equipe_2 = :e2 AND date_match BETWEEN :dstart AND :dend');
-                $checkStmt->execute([
-                    ':e1' => $equipe1,
-                    ':e2' => $equipe2,
-                    ':dstart' => $dayStart,
-                    ':dend' => $dayEnd,
-                ]);
-                if ((int)$checkStmt->fetchColumn() > 0) {
-                    $exists = true;
-                }
-            }
-
-            if ($exists) {
-                if ($apiEventId !== '') {
-                    $updateStmt = $pdo->prepare('UPDATE matchs SET date_match = :date_match, image_path = :image_path_home, image_path_away = :image_path_away, competition = :competition, sport = :sport WHERE api_event_id = :api_event_id');
-                    $updateStmt->execute([
-                        ':date_match' => $dateMatch,
-                        ':image_path_home' => $imagePathHome !== '' ? $imagePathHome : null,
-                        ':image_path_away' => $imagePathAway !== '' ? $imagePathAway : null,
-                        ':competition' => $competition,
-                        ':sport' => $sport,
-                        ':api_event_id' => $apiEventId,
-                    ]);
-                }
-                continue;
-            }
-
-            $slug = generate_unique_match_slug($pdo, $equipe1, $equipe2, $dateMatch);
-
-            $insertStmt = $pdo->prepare('INSERT INTO matchs (slug, equipe_1, equipe_2, competition, date_match, image_path, image_path_away, sport, api_event_id, statut, is_active) VALUES (:slug, :equipe_1, :equipe_2, :competition, :date_match, :image_path_home, :image_path_away, :sport, :api_event_id, \'scheduled\', 1)');
-            $insertStmt->execute([
-                ':slug' => $slug,
-                ':equipe_1' => $equipe1,
-                ':equipe_2' => $equipe2,
-                ':competition' => $competition,
-                ':date_match' => $dateMatch,
-                ':image_path_home' => $imagePathHome !== '' ? $imagePathHome : null,
-                ':image_path_away' => $imagePathAway !== '' ? $imagePathAway : null,
-                ':sport' => $sport,
-                ':api_event_id' => $apiEventId !== '' ? $apiEventId : null,
-            ]);
-            $importedCount++;
-        }
-
-        set_flash('success', $importedCount . ' match(s) synchronisé(s) et ajouté(s) à la programmation !');
         redirect_admin('matchs');
       }
 
@@ -556,7 +487,10 @@ if (!is_admin_authenticated()) {
     exit;
 }
 
-$matchs = $pdo->query('SELECT * FROM matchs ORDER BY date_match DESC')->fetchAll();
+$matchs = $pdo->query('SELECT * FROM matchs ORDER BY 
+  (date_match < DATE_SUB(NOW(), INTERVAL 2 HOUR)) ASC,
+  CASE WHEN date_match >= DATE_SUB(NOW(), INTERVAL 2 HOUR) THEN date_match END ASC,
+  CASE WHEN date_match < DATE_SUB(NOW(), INTERVAL 2 HOUR) THEN date_match END DESC')->fetchAll();
 $produits = $pdo->query('SELECT * FROM carte_produits ORDER BY categorie, nom')->fetchAll();
 $categories = ['Bières', 'Cocktails', 'Softs', 'Food', 'Planches'];
 $siteName = config_value('site_name', 'Le Gentleman Pub');
@@ -621,135 +555,140 @@ $heroBgImage = config_value('hero_bg_image', '/assets/uploads/hero-bg.jpg');
     </div>
 
     <?php if ($tab === 'matchs'): ?>
-      <!-- API Import Section -->
-      <div class="mb-8 rounded-2xl border border-white/10 bg-[#1A1A1A] p-6 shadow-lg">
-        <div class="border-b border-white/10 pb-4 flex flex-wrap items-center justify-between gap-4">
+      <?php
+      $lastImportTime = "Aucune synchronisation enregistrée";
+      $lockFile = __DIR__ . '/api/last_import.txt';
+      if (file_exists($lockFile)) {
+          $lastImportTime = date('d/m/Y à H:i:s', filemtime($lockFile));
+      }
+      ?>
+
+      <!-- iCal Auto-Import Panel -->
+      <div class="grid gap-6 md:grid-cols-3 mb-8">
+        <!-- iCal Sync Card -->
+        <div class="md:col-span-2 rounded-2xl border border-white/10 bg-[#1A1A1A] p-6 shadow-lg flex flex-col justify-between">
           <div>
-            <h2 class="text-2xl font-display text-amber-300 flex items-center gap-2">Smart Fixtures Feed ⭐</h2>
-            <p class="text-xs text-gray-400 mt-1">Les prochains grands matchs de foot (Ligue 1, Ligue des Champions, Coupe du Monde) et rugby (Top 14, 6 Nations) sont pré-sélectionnés. Modifiez et validez.</p>
-          </div>
-          <div>
-            <form id="bulk-sync-form" method="post" onsubmit="submitBulkSync(event)">
-              <input type="hidden" name="csrf_token" value="<?php echo e($_SESSION['csrf_token']); ?>">
-              <input type="hidden" name="action" value="bulk_sync_matchs">
-              <input type="hidden" name="fixtures_json" id="fixtures-json-input" value="[]">
-              <button type="submit" id="bulk-sync-btn" disabled class="rounded-lg bg-gray-600 px-5 py-3 font-semibold text-gray-400 text-sm transition-all cursor-not-allowed">
-                Synchroniser la sélection (<span id="selected-count">0</span> match(s))
-              </button>
-            </form>
-          </div>
-        </div>
+            <div class="flex items-center justify-between gap-4 border-b border-white/10 pb-4 mb-4">
+              <h2 class="text-xl font-display text-amber-300 flex items-center gap-2">
+                <span>🔄 Synchronisation iCal</span>
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-semibold border border-emerald-500/20">
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                  Actif
+                </span>
+              </h2>
+            </div>
+            
+            <p class="text-xs text-gray-400 leading-relaxed">
+              Les prochains matchs des 15 prochains jours sont importés automatiquement toutes les 24h via les flux calendriers (.ics). Seules les grandes affiches correspondantes aux équipes du bar (ex: PSG, OM, France, Stade Toulousain...) sont importées pour garder le programme propre.
+            </p>
 
-        <!-- Feed Loader & Table -->
-        <div id="smart-feed-status" class="py-8 text-center text-sm text-gray-400 bg-black/20 rounded-xl mt-4">
-          <span class="inline-block animate-pulse">Chargement intelligent des flux de match (Ligue 1, Top 14, Champions League...)</span>
-        </div>
-
-        <div id="smart-feed-container" class="mt-6 hidden space-y-8">
-          <!-- Football Table -->
-          <div class="space-y-3">
-            <h3 class="text-lg font-display text-amber-300 flex items-center gap-2">⚽ Football</h3>
-            <div class="overflow-x-auto rounded-xl border border-white/10 bg-[#121212]">
-              <table class="w-full text-left text-sm">
-                <thead class="text-xs text-gray-400 uppercase bg-white/5 border-b border-white/10">
-                  <tr>
-                    <th class="px-4 py-3 w-12 text-center">Diffuser</th>
-                    <th class="px-4 py-3">Match</th>
-                    <th class="px-4 py-3">Compétition / Date</th>
-                    <th class="px-4 py-3 text-center">Pré-sélection</th>
-                  </tr>
-                </thead>
-                <tbody id="smart-feed-body-soccer" class="divide-y divide-white/5">
-                </tbody>
-              </table>
+            <div class="mt-4">
+              <span class="text-[10px] text-gray-500 uppercase tracking-wider block mb-2 font-semibold font-body">Championnats & Calendriers synchronisés :</span>
+              <div class="flex flex-wrap gap-1.5">
+                <span class="rounded-full bg-white/5 border border-white/10 px-2 py-0.5 text-[10px] text-gray-300">⚽ Ligue 1</span>
+                <span class="rounded-full bg-white/5 border border-white/10 px-2 py-0.5 text-[10px] text-gray-300">⚽ Champions League</span>
+                <span class="rounded-full bg-white/5 border border-white/10 px-2 py-0.5 text-[10px] text-gray-300">⚽ Europa League</span>
+                <span class="rounded-full bg-white/5 border border-white/10 px-2 py-0.5 text-[10px] text-gray-300">⚽ Premier League</span>
+                <span class="rounded-full bg-white/5 border border-white/10 px-2 py-0.5 text-[10px] text-gray-300">⚽ La Liga</span>
+                <span class="rounded-full bg-white/5 border border-white/10 px-2 py-0.5 text-[10px] text-gray-300">⚽ Serie A</span>
+                <span class="rounded-full bg-white/5 border border-white/10 px-2 py-0.5 text-[10px] text-gray-300">🏉 Top 14</span>
+                <span class="rounded-full bg-white/5 border border-white/10 px-2 py-0.5 text-[10px] text-gray-300">🏉 Six Nations</span>
+              </div>
             </div>
           </div>
 
-          <!-- Rugby Table -->
-          <div class="space-y-3">
-            <h3 class="text-lg font-display text-amber-300 flex items-center gap-2">🏉 Rugby</h3>
-            <div class="overflow-x-auto rounded-xl border border-white/10 bg-[#121212]">
-              <table class="w-full text-left text-sm">
-                <thead class="text-xs text-gray-400 uppercase bg-white/5 border-b border-white/10">
-                  <tr>
-                    <th class="px-4 py-3 w-12 text-center">Diffuser</th>
-                    <th class="px-4 py-3">Match</th>
-                    <th class="px-4 py-3">Compétition / Date</th>
-                    <th class="px-4 py-3 text-center">Pré-sélection</th>
-                  </tr>
-                </thead>
-                <tbody id="smart-feed-body-rugby" class="divide-y divide-white/5">
-                </tbody>
-              </table>
+          <div class="mt-6 border-t border-white/10 pt-4 flex flex-wrap items-center justify-between gap-4">
+            <div class="text-xs text-gray-400">
+              Dernière synchronisation : <br class="sm:hidden">
+              <span id="last-sync-time" class="text-amber-300 font-semibold"><?php echo e($lastImportTime); ?></span>
             </div>
+            
+            <button type="button" id="btn-force-sync" onclick="triggerForceSync()" class="rounded-lg bg-amber-400 px-4 py-2 text-xs font-semibold text-black hover:bg-amber-300 transition-all shadow-[0_0_15px_rgba(212,175,55,0.1)] flex items-center gap-1.5">
+              <svg id="sync-spinner" class="hidden animate-spin h-3.5 w-3.5 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <span>Synchroniser maintenant</span>
+            </button>
           </div>
-
-          <!-- Other Sports Table -->
-          <div class="space-y-3">
-            <h3 class="text-lg font-display text-amber-300 flex items-center gap-2">🏆 Autres Sports</h3>
-            <div class="overflow-x-auto rounded-xl border border-white/10 bg-[#121212]">
-              <table class="w-full text-left text-sm">
-                <thead class="text-xs text-gray-400 uppercase bg-white/5 border-b border-white/10">
-                  <tr>
-                    <th class="px-4 py-3 w-12 text-center">Diffuser</th>
-                    <th class="px-4 py-3">Match</th>
-                    <th class="px-4 py-3">Compétition / Date</th>
-                    <th class="px-4 py-3 text-center">Pré-sélection</th>
-                  </tr>
-                </thead>
-                <tbody id="smart-feed-body-others" class="divide-y divide-white/5">
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-
-        <!-- Toggle for manual search -->
-        <div class="mt-6 border-t border-white/10 pt-4">
-          <button type="button" onclick="document.getElementById('manual-search-section').classList.toggle('hidden')" class="text-xs text-amber-300 hover:underline flex items-center gap-1">
-            <span class="material-symbols-outlined text-sm">search</span>
-            Besoin de rechercher une autre équipe spécifique ? (PSG, Marseille, Lyon, etc.)
-          </button>
           
-          <div id="manual-search-section" class="hidden mt-4 pt-4 border-t border-white/5">
-            <div class="flex flex-wrap items-center justify-between gap-4">
-              <div class="flex-1 min-w-[250px] flex gap-3">
-                <input type="text" id="api-search-input" placeholder="Rechercher une équipe spécifique (ex: Monaco, Arsenal, Toulouse...)" class="flex-1 rounded-lg bg-[#121212] border border-white/10 px-4 py-2 text-white outline-none focus:border-amber-400 text-xs">
-                <button type="button" onclick="searchTeam()" class="rounded-lg bg-white/10 border border-white/20 px-4 py-2 font-semibold text-white hover:bg-white/20 text-xs transition-colors">Rechercher</button>
-              </div>
-              <div class="flex flex-wrap gap-1">
-                <button type="button" onclick="quickSearch('133714')" class="rounded-full bg-white/5 border border-white/10 px-2 py-1 text-[10px] hover:bg-amber-400 hover:text-black transition-colors">PSG</button>
-                <button type="button" onclick="quickSearch('133707')" class="rounded-full bg-white/5 border border-white/10 px-2 py-1 text-[10px] hover:bg-amber-400 hover:text-black transition-colors">OM</button>
-                <button type="button" onclick="quickSearch('134989')" class="rounded-full bg-white/5 border border-white/10 px-2 py-1 text-[10px] hover:bg-amber-400 hover:text-black transition-colors">France</button>
-                <button type="button" onclick="quickSearch('133739')" class="rounded-full bg-white/5 border border-white/10 px-2 py-1 text-[10px] hover:bg-amber-400 hover:text-black transition-colors">Real</button>
-                <button type="button" onclick="quickSearch('133738')" class="rounded-full bg-white/5 border border-white/10 px-2 py-1 text-[10px] hover:bg-amber-400 hover:text-black transition-colors">Barça</button>
-              </div>
-            </div>
-
-            <!-- Team Results -->
-            <div id="team-results" class="mt-4 hidden grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-3"></div>
-
-            <!-- Loading / No events indicator -->
-            <div id="api-status" class="mt-6 text-sm text-gray-400 hidden text-center py-4 bg-black/20 rounded-xl"></div>
-
-            <!-- Matches Results Table -->
-            <div id="matches-results-container" class="mt-6 hidden">
-              <h3 class="text-xs font-semibold text-gray-300 uppercase tracking-wider mb-3">Résultats de recherche</h3>
-              <div class="overflow-x-auto rounded-xl border border-white/10 bg-[#121212]">
-                <table class="w-full text-left text-sm text-gray-300">
-                  <thead class="text-xs text-gray-400 uppercase bg-white/5 border-b border-white/10">
-                    <tr>
-                      <th class="px-4 py-2">Match</th>
-                      <th class="px-4 py-2">Compétition / Date</th>
-                      <th class="px-4 py-2 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody id="matches-results-body" class="divide-y divide-white/5">
-                  </tbody>
-                </table>
-              </div>
+          <!-- Terminal log output during manual sync -->
+          <div id="sync-console-container" class="mt-4 hidden">
+            <div class="text-[10px] text-gray-500 font-semibold mb-1 uppercase tracking-wider">Console de synchronisation :</div>
+            <div id="sync-console" class="bg-black/40 border border-white/5 rounded-xl p-3 font-mono text-[10px] text-emerald-400 max-h-32 overflow-y-auto space-y-1">
             </div>
           </div>
+        </div>
+
+        <!-- Manual Match Addition Card -->
+        <div class="rounded-2xl border border-white/10 bg-[#1A1A1A] p-6 shadow-lg flex flex-col justify-between">
+          <div>
+            <h2 class="text-xl font-display text-amber-300 border-b border-white/10 pb-4 mb-4 flex items-center gap-2">
+              <span>➕ Match Manuel</span>
+            </h2>
+            <p class="text-xs text-gray-400 leading-relaxed mb-4">
+              Si un match n'apparaît pas dans l'auto-import ou si c'est un autre sport (ex: handball, formule 1, tennis...), vous pouvez l'ajouter ici.
+            </p>
+          </div>
+          
+          <button type="button" onclick="document.getElementById('manual-match-modal').classList.remove('hidden')" class="w-full rounded-lg border border-white/10 bg-white/5 py-3 text-xs font-semibold text-gray-300 hover:border-amber-400/50 hover:text-amber-300 hover:bg-amber-400/5 transition-all text-center">
+            Créer un match personnalisé
+          </button>
+        </div>
+      </div>
+
+      <!-- Pop-up Modal for Manual Match (Saves page space, looks premium) -->
+      <div id="manual-match-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm hidden">
+        <div class="w-full max-w-lg rounded-2xl bg-[#1A1A1A] border border-white/10 shadow-2xl p-6 relative">
+          <button type="button" onclick="document.getElementById('manual-match-modal').classList.add('hidden')" class="absolute top-4 right-4 text-gray-400 hover:text-white text-xl">&times;</button>
+          
+          <h3 class="text-2xl font-display text-amber-300 border-b border-white/10 pb-3 mb-6">Ajouter un match manuel</h3>
+          
+          <form method="post" class="space-y-4">
+            <input type="hidden" name="csrf_token" value="<?php echo e($_SESSION['csrf_token']); ?>">
+            <input type="hidden" name="action" value="add_manual_match">
+            
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs text-gray-400 mb-1 font-semibold uppercase">Sport</label>
+                <select name="sport" required class="w-full rounded-lg bg-[#121212] border border-white/10 px-3 py-2 text-white text-xs outline-none focus:border-amber-400">
+                  <option value="Soccer">⚽ Football</option>
+                  <option value="Rugby">🏉 Rugby</option>
+                  <option value="Autre">🏆 Autre sport</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs text-gray-400 mb-1 font-semibold uppercase">Compétition</label>
+                <input name="competition" type="text" placeholder="ex: Ligue 1, Top 14, Amical" required class="w-full rounded-lg bg-[#121212] border border-white/10 px-3 py-2 text-white text-xs outline-none focus:border-amber-400">
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs text-gray-400 mb-1 font-semibold uppercase">Équipe Domicile</label>
+                <input name="equipe_1" type="text" placeholder="ex: PSG" required class="w-full rounded-lg bg-[#121212] border border-white/10 px-3 py-2 text-white text-xs outline-none focus:border-amber-400">
+              </div>
+              <div>
+                <label class="block text-xs text-gray-400 mb-1 font-semibold uppercase">Équipe Extérieur</label>
+                <input name="equipe_2" type="text" placeholder="ex: OM" required class="w-full rounded-lg bg-[#121212] border border-white/10 px-3 py-2 text-white text-xs outline-none focus:border-amber-400">
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs text-gray-400 mb-1 font-semibold uppercase">Date & Heure du Match (Heure locale FR)</label>
+              <input name="date_match" type="datetime-local" required class="w-full rounded-lg bg-[#121212] border border-white/10 px-3 py-2 text-white text-xs outline-none focus:border-amber-400">
+            </div>
+
+            <div class="flex items-center gap-2 pt-2">
+              <input type="checkbox" name="is_featured" id="is_featured_modal" class="w-4 h-4 rounded bg-[#121212] border-white/10 text-amber-400 focus:ring-amber-400 cursor-pointer">
+              <label for="is_featured_modal" class="text-xs text-gray-300 cursor-pointer">Mettre à l'affiche immédiatement (Bandeau d'accueil)</label>
+            </div>
+
+            <div class="flex justify-end gap-3 border-t border-white/10 pt-4 mt-6">
+              <button type="button" onclick="document.getElementById('manual-match-modal').classList.add('hidden')" class="rounded-lg bg-white/5 border border-white/10 px-4 py-2 text-xs text-gray-300 hover:bg-white/10 transition-all">Annuler</button>
+              <button type="submit" class="rounded-lg bg-amber-400 px-4 py-2 text-xs font-semibold text-black hover:bg-amber-300 transition-all shadow-[0_0_15px_rgba(212,175,55,0.2)]">Enregistrer le match</button>
+            </div>
+          </form>
         </div>
       </div>
 
@@ -784,8 +723,23 @@ $heroBgImage = config_value('hero_bg_image', '/assets/uploads/hero-bg.jpg');
                   $isLive = is_match_live($match);
                   $homeLogo = !empty($match['image_path']) ? $match['image_path'] : null;
                   $awayLogo = !empty($match['image_path_away']) ? $match['image_path_away'] : null;
+                  
+                  // Vérifier si le match est aujourd'hui
+                  $matchDate = $d->format('Y-m-d');
+                  $todayDate = (new DateTime('now', new DateTimeZone('Europe/Paris')))->format('Y-m-d');
+                  $isToday = ($matchDate === $todayDate);
+                  
+                  // Déterminer la classe de la ligne en fonction du statut
+                  $rowClass = "align-middle hover:bg-white/5 transition-all border-l-2 border-transparent";
+                  if ($isLive) {
+                      $rowClass = "align-middle bg-emerald-500/5 hover:bg-emerald-500/10 transition-all border-l-2 border-emerald-500";
+                  } elseif ($isToday && $badge !== 'FINISHED') {
+                      $rowClass = "align-middle bg-amber-400/5 hover:bg-amber-400/10 transition-all border-l-2 border-amber-400/40";
+                  } elseif ($badge === 'FINISHED') {
+                      $rowClass = "align-middle hover:bg-white/5 opacity-60 transition-all border-l-2 border-transparent";
+                  }
                 ?>
-                  <tr class="align-middle hover:bg-white/5 transition-colors">
+                  <tr class="<?php echo $rowClass; ?>">
                     <td class="px-4 py-4">
                       <div class="flex items-center gap-3">
                         <div class="flex items-center gap-1.5 flex-shrink-0">
@@ -820,6 +774,10 @@ $heroBgImage = config_value('hero_bg_image', '/assets/uploads/hero-bg.jpg');
                       <?php elseif ($badge === 'FINISHED'): ?>
                         <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-white/5 text-gray-400 text-xs font-semibold uppercase border border-white/10">
                           <?php echo e($badge); ?>
+                        </span>
+                      <?php elseif ($isToday): ?>
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 text-xs font-bold uppercase border border-amber-400/40 shadow-[0_0_10px_rgba(212,175,55,0.15)] animate-pulse">
+                          <span>📅 Aujourd'hui</span>
                         </span>
                       <?php else: ?>
                         <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-amber-400/5 text-amber-300/80 text-xs font-semibold uppercase border border-amber-400/10">
@@ -1131,368 +1089,62 @@ $heroBgImage = config_value('hero_bg_image', '/assets/uploads/hero-bg.jpg');
       });
     });
 
-    const SPORTSDB_API_KEY = "<?php echo e(config_value('sportsdb_api_key', '3')); ?>";
-    let allFixtures = [];
+    async function triggerForceSync() {
+      const btn = document.getElementById('btn-force-sync');
+      const spinner = document.getElementById('sync-spinner');
+      const consoleContainer = document.getElementById('sync-console-container');
+      const consoleBox = document.getElementById('sync-console');
+      const lastSyncSpan = document.getElementById('last-sync-time');
 
-    // Ligue IDs to sync (Foot & Rugby, divisions majeures)
-    const leaguesToSync = [
-      { id: '4334', name: 'Ligue 1' },
-      { id: '4480', name: 'Champions League' },
-      { id: '4429', name: 'Coupe du Monde' },
-      { id: '4562', name: 'Euro' },
-      { id: '4328', name: 'Premier League' },
-      { id: '4335', name: 'La Liga' },
-      { id: '4332', name: 'Serie A' },
-      { id: '4396', name: 'Ligue 2' },
-      { id: '4484', name: 'Coupe de France' },
-      { id: '4415', name: 'Top 14 Rugby' },
-      { id: '4417', name: 'Six Nations Rugby' }
-    ];
+      btn.disabled = true;
+      btn.classList.add('opacity-80', 'cursor-not-allowed');
+      spinner.classList.remove('hidden');
+      consoleContainer.classList.remove('hidden');
+      consoleBox.innerHTML = ''; // Clear previous logs
 
-    async function loadSmartFeed() {
-      const statusDiv = document.getElementById('smart-feed-status');
-      const container = document.getElementById('smart-feed-container');
-      const bodySoccer = document.getElementById('smart-feed-body-soccer');
-      const bodyRugby = document.getElementById('smart-feed-body-rugby');
-      const bodyOthers = document.getElementById('smart-feed-body-others');
-      
-      statusDiv.classList.remove('hidden');
-      statusDiv.innerHTML = '<span class="inline-block animate-pulse">Chargement intelligent des flux (Foot & Rugby)...</span>';
-      container.classList.add('hidden');
-      bodySoccer.innerHTML = '';
-      bodyRugby.innerHTML = '';
-      bodyOthers.innerHTML = '';
-      allFixtures = [];
-      
+      const log = (msg, isError = false) => {
+        const time = new Date().toLocaleTimeString('fr-FR');
+        const p = document.createElement('div');
+        p.className = isError ? 'text-red-400 font-semibold' : 'text-emerald-400';
+        p.innerHTML = `<span class="text-gray-500">[${time}]</span> ${msg}`;
+        consoleBox.appendChild(p);
+        consoleBox.scrollTop = consoleBox.scrollHeight;
+      };
+
+      log("Connexion aux serveurs de calendriers iCal...");
+      log("Téléchargement des calendriers (Ligue 1, Champions League, Top 14...)...");
+
       try {
-        const fetchPromises = leaguesToSync.map(async (league) => {
-          try {
-            const res = await fetch(`https://www.thesportsdb.com/api/v1/json/${SPORTSDB_API_KEY}/eventsnextleague.php?id=${league.id}`);
-            const data = await res.json();
-            if (data && data.events) {
-              return data.events.map(ev => ({ ...ev, leagueName: league.name }));
-            }
-          } catch (e) {
-            console.warn(`Could not load fixtures for league ${league.name}`, e);
-          }
-          return [];
-        });
+        const response = await fetch('/api/auto-import.php?force=1');
+        const data = await response.json();
         
-        const results = await Promise.all(fetchPromises);
-        const mergedEvents = results.flat();
-        
-        if (mergedEvents.length === 0) {
-          statusDiv.textContent = "Aucun match à venir trouvé dans les grands championnats.";
-          return;
-        }
-        
-        // Trier chronologiquement
-        mergedEvents.sort((a, b) => new Date(a.dateEvent + 'T' + (a.strTime || '00:00:00')) - new Date(b.dateEvent + 'T' + (b.strTime || '00:00:00')));
-        
-        statusDiv.classList.add('hidden');
-        container.classList.remove('hidden');
-        
-        let counts = { soccer: 0, rugby: 0, others: 0 };
-        
-        mergedEvents.forEach((event, index) => {
-          const dateStr = event.dateEvent + 'T' + (event.strTime || '00:00:00');
-          const dateObj = new Date(dateStr);
+        if (data && data.success) {
+          log("Lecture et décodage des flux terminés !");
+          log(data.message);
           
-          // Filtrer les matchs prévus dans plus de 30 jours
-          const maxDate = new Date();
-          maxDate.setDate(maxDate.getDate() + 30);
-          if (dateObj > maxDate) {
-            return;
-          }
-          
-          const formattedDate = dateObj.toLocaleDateString('fr-FR', {
-            day: '2-digit', month: '2-digit', year: 'numeric',
-            hour: '2-digit', minute: '2-digit'
-          });
-          
+          // Mise à jour de la date affichée
+          const now = new Date();
           const pad = (n) => n.toString().padStart(2, '0');
-          const sqlDate = `${dateObj.getFullYear()}-${pad(dateObj.getMonth()+1)}-${pad(dateObj.getDate())} ${pad(dateObj.getHours())}:${pad(dateObj.getMinutes())}:00`;
+          lastSyncSpan.textContent = `${pad(now.getDate())}/${pad(now.getMonth()+1)}/${now.getFullYear()} à ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
           
-          const homeLogo = event.strHomeTeamBadge || '';
-          const awayLogo = event.strAwayTeamBadge || '';
-          const sportType = event.strSport || 'Soccer';
-          const apiEventId = event.idEvent || '';
-          
-          // Règles de pré-sélection (Équipes françaises, PSG, Marseille, Toulouse Rugby, phases finales)
-          const home = event.strHomeTeam.toLowerCase();
-          const away = event.strAwayTeam.toLowerCase();
-          const keywords = ['psg', 'paris sg', 'paris saint-germain', 'marseille', 'om', 'france', 'toulouse', 'monaco', 'lyon', 'real madrid', 'barcelona', 'toulon'];
-          const matchesKeyword = keywords.some(kw => home.includes(kw) || away.includes(kw));
-          const isFinalOrKey = event.strEvent.toLowerCase().includes('final') || event.strEvent.toLowerCase().includes('semi');
-          const shouldAutoCheck = matchesKeyword || isFinalOrKey;
-          
-          allFixtures.push({
-            index: index,
-            equipe_1: event.strHomeTeam,
-            equipe_2: event.strAwayTeam,
-            competition: event.strLeague || event.leagueName,
-            date_match: sqlDate,
-            image_path_home: homeLogo,
-            image_path_away: awayLogo,
-            sport: sportType,
-            api_event_id: apiEventId,
-            checked: shouldAutoCheck
-          });
-          
-          const tr = document.createElement('tr');
-          tr.className = 'border-b border-white/5 hover:bg-white/5 transition-colors align-middle';
-          tr.innerHTML = `
-            <td class="px-4 py-4 text-center">
-              <input type="checkbox" id="check-${index}" onchange="toggleFixture(${index})" ${shouldAutoCheck ? 'checked' : ''} class="w-5 h-5 rounded bg-[#121212] border-white/10 text-amber-400 focus:ring-amber-400 cursor-pointer">
-            </td>
-            <td class="px-4 py-4">
-              <div class="flex items-center gap-3">
-                <div class="flex items-center gap-1.5 flex-shrink-0">
-                  ${homeLogo ? `<img src="${homeLogo}" class="h-8 w-8 object-contain" />` : `<div class="h-8 w-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-[10px] text-gray-500 font-semibold">H</div>`}
-                  <span class="text-gray-500 text-[10px]">vs</span>
-                  ${awayLogo ? `<img src="${awayLogo}" class="h-8 w-8 object-contain" />` : `<div class="h-8 w-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-[10px] text-gray-500 font-semibold">A</div>`}
-                </div>
-                <div>
-                  <span class="font-semibold text-white">${event.strHomeTeam}</span>
-                  <span class="text-gray-500 mx-0.5">c.</span>
-                  <span class="font-semibold text-white">${event.strAwayTeam}</span>
-                </div>
-              </div>
-            </td>
-            <td class="px-4 py-4">
-              <div class="text-white text-sm font-semibold">${event.strLeague || event.leagueName}</div>
-              <div class="text-gray-400 text-xs mt-0.5">${formattedDate}</div>
-            </td>
-            <td class="px-4 py-4 text-center">
-              ${shouldAutoCheck ? '<span class="text-xs px-2.5 py-1 bg-amber-400/10 text-amber-300 rounded-full font-semibold border border-amber-400/20">🔥 Auto-Sélection</span>' : '<span class="text-xs text-gray-500">-</span>'}
-            </td>
-          `;
-          
-          if (sportType === 'Soccer') {
-            bodySoccer.appendChild(tr);
-            counts.soccer++;
-          } else if (sportType === 'Rugby') {
-            bodyRugby.appendChild(tr);
-            counts.rugby++;
-          } else {
-            bodyOthers.appendChild(tr);
-            counts.others++;
-          }
-        });
-        
-        toggleTableVisibility('smart-feed-body-soccer', counts.soccer);
-        toggleTableVisibility('smart-feed-body-rugby', counts.rugby);
-        toggleTableVisibility('smart-feed-body-others', counts.others);
-        
-        updateSelectedCount();
+          log("Mise à jour de la programmation en cours... Rechargement dans 1.5s...");
+          setTimeout(() => {
+            window.location.reload();
+          }, 1500);
+        } else {
+          log(data && data.message ? data.message : "Erreur inconnue lors de l'importation.", true);
+          btn.disabled = false;
+          btn.classList.remove('opacity-80', 'cursor-not-allowed');
+          spinner.classList.add('hidden');
+        }
       } catch (err) {
-        statusDiv.textContent = "Erreur de chargement du Smart Feed.";
+        log("Erreur réseau ou script injoignable : " + err.message, true);
         console.error(err);
-      }
-    }
-
-    function toggleTableVisibility(bodyId, count) {
-      const tableDiv = document.getElementById(bodyId).closest('.space-y-3');
-      if (count === 0) {
-        tableDiv.classList.add('hidden');
-      } else {
-        tableDiv.classList.remove('hidden');
-      }
-    }
-
-    function toggleFixture(index) {
-      if (allFixtures[index]) {
-        allFixtures[index].checked = document.getElementById(`check-${index}`).checked;
-      }
-      updateSelectedCount();
-    }
-
-    function updateSelectedCount() {
-      const count = allFixtures.filter(f => f.checked).length;
-      document.getElementById('selected-count').textContent = count;
-      const btn = document.getElementById('bulk-sync-btn');
-      if (count > 0) {
         btn.disabled = false;
-        btn.className = "rounded-lg bg-amber-400 px-5 py-3 font-semibold text-black hover:bg-amber-300 text-sm transition-all cursor-pointer shadow-[0_0_15px_rgba(212,175,55,0.2)] hover:shadow-[0_0_20px_rgba(212,175,55,0.4)]";
-      } else {
-        btn.disabled = true;
-        btn.className = "rounded-lg bg-gray-600 px-5 py-3 font-semibold text-gray-400 text-sm transition-all cursor-not-allowed";
+        btn.classList.remove('opacity-80', 'cursor-not-allowed');
+        spinner.classList.add('hidden');
       }
     }
-
-    function submitBulkSync(e) {
-      const selected = allFixtures.filter(f => f.checked);
-      document.getElementById('fixtures-json-input').value = JSON.stringify(selected);
-    }
-
-    // --- MANUALLY SEARCH ---
-    async function quickSearch(teamId) {
-      const statusDiv = document.getElementById('api-status');
-      const container = document.getElementById('matches-results-container');
-      const resultsBody = document.getElementById('matches-results-body');
-      const teamResults = document.getElementById('team-results');
-      
-      teamResults.classList.add('hidden');
-      statusDiv.classList.remove('hidden');
-      statusDiv.textContent = "Chargement des matchs de l'équipe...";
-      container.classList.add('hidden');
-      
-      try {
-        const res = await fetch(`https://www.thesportsdb.com/api/v1/json/${SPORTSDB_API_KEY}/eventsnext.php?id=${teamId}`);
-        const data = await res.json();
-        
-        if (!data || !data.events || data.events.length === 0) {
-          statusDiv.textContent = "Aucun match à venir trouvé pour cette équipe.";
-          return;
-        }
-        
-        statusDiv.classList.add('hidden');
-        container.classList.remove('hidden');
-        resultsBody.innerHTML = '';
-        
-        data.events.forEach(event => {
-          const dateStr = event.dateEvent + 'T' + (event.strTime || '00:00:00');
-          const dateObj = new Date(dateStr);
-          const formattedDate = dateObj.toLocaleDateString('fr-FR', {
-            day: '2-digit', month: '2-digit', year: 'numeric',
-            hour: '2-digit', minute: '2-digit'
-          });
-          
-          const pad = (n) => n.toString().padStart(2, '0');
-          const sqlDate = `${dateObj.getFullYear()}-${pad(dateObj.getMonth()+1)}-${pad(dateObj.getDate())} ${pad(dateObj.getHours())}:${pad(dateObj.getMinutes())}:00`;
-          const homeLogo = event.strHomeTeamBadge || '';
-          const awayLogo = event.strAwayTeamBadge || '';
-          const sportType = event.strSport || 'Soccer';
-          const apiEventId = event.idEvent || '';
-          
-          const tr = document.createElement('tr');
-          tr.className = 'border-b border-white/5 hover:bg-white/5 transition-colors align-middle';
-          tr.innerHTML = `
-            <td class="px-4 py-4">
-              <div class="flex items-center gap-3">
-                <div class="flex items-center gap-1.5 flex-shrink-0">
-                  ${homeLogo ? `<img src="${homeLogo}" class="h-8 w-8 object-contain" />` : `<div class="h-8 w-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-[10px] text-gray-500 font-semibold">H</div>`}
-                  <span class="text-gray-500 text-[10px]">vs</span>
-                  ${awayLogo ? `<img src="${awayLogo}" class="h-8 w-8 object-contain" />` : `<div class="h-8 w-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-[10px] text-gray-500 font-semibold">A</div>`}
-                </div>
-                <div>
-                  <span class="font-semibold text-white">${event.strHomeTeam}</span>
-                  <span class="text-gray-500 mx-0.5">c.</span>
-                  <span class="font-semibold text-white">${event.strAwayTeam}</span>
-                </div>
-              </div>
-            </td>
-            <td class="px-4 py-4">
-              <div class="text-white text-sm font-semibold">${event.strLeague || 'Match Amical'}</div>
-              <div class="text-gray-400 text-xs mt-0.5">${formattedDate}</div>
-            </td>
-            <td class="px-4 py-4 text-right">
-              <div class="flex justify-end gap-2">
-                <form method="post" style="display:inline-block">
-                  <input type="hidden" name="csrf_token" value="<?php echo e($_SESSION['csrf_token']); ?>">
-                  <input type="hidden" name="action" value="import_match_api">
-                  <input type="hidden" name="equipe_1" value="${event.strHomeTeam}">
-                  <input type="hidden" name="equipe_2" value="${event.strAwayTeam}">
-                  <input type="hidden" name="competition" value="${event.strLeague || 'Football'}">
-                  <input type="hidden" name="date_match" value="${sqlDate}">
-                  <input type="hidden" name="image_path_home" value="${homeLogo}">
-                  <input type="hidden" name="image_path_away" value="${awayLogo}">
-                  <input type="hidden" name="sport" value="${sportType}">
-                  <input type="hidden" name="api_event_id" value="${apiEventId}">
-                  <button type="submit" class="rounded bg-white/5 border border-white/10 px-3 py-1.5 text-xs text-gray-200 hover:bg-amber-400 hover:text-black transition-colors font-medium">Importer & Diffuser</button>
-                </form>
-                <form method="post" style="display:inline-block">
-                  <input type="hidden" name="csrf_token" value="<?php echo e($_SESSION['csrf_token']); ?>">
-                  <input type="hidden" name="action" value="import_match_api">
-                  <input type="hidden" name="equipe_1" value="${event.strHomeTeam}">
-                  <input type="hidden" name="equipe_2" value="${event.strAwayTeam}">
-                  <input type="hidden" name="competition" value="${event.strLeague || 'Football'}">
-                  <input type="hidden" name="date_match" value="${sqlDate}">
-                  <input type="hidden" name="image_path_home" value="${homeLogo}">
-                  <input type="hidden" name="image_path_away" value="${awayLogo}">
-                  <input type="hidden" name="sport" value="${sportType}">
-                  <input type="hidden" name="api_event_id" value="${apiEventId}">
-                  <input type="hidden" name="is_featured" value="1">
-                  <button type="submit" class="rounded bg-amber-400 px-3 py-1.5 text-xs text-black hover:bg-amber-300 transition-colors font-semibold">★ Importer & Mettre à l'affiche</button>
-                </form>
-              </div>
-            </td>
-          `;
-          resultsBody.appendChild(tr);
-        });
-      } catch (err) {
-        statusDiv.textContent = "Erreur de connexion à l'API.";
-        console.error(err);
-      }
-    }
-
-    async function searchTeam() {
-      const query = document.getElementById('api-search-input').value.trim();
-      const statusDiv = document.getElementById('api-status');
-      const teamResults = document.getElementById('team-results');
-      const container = document.getElementById('matches-results-container');
-      
-      if (!query) return;
-      
-      statusDiv.classList.remove('hidden');
-      statusDiv.textContent = "Recherche de l'équipe...";
-      teamResults.classList.add('hidden');
-      container.classList.add('hidden');
-      
-      try {
-        const res = await fetch(`https://www.thesportsdb.com/api/v1/json/${SPORTSDB_API_KEY}/searchteams.php?t=${encodeURIComponent(query)}`);
-        const data = await res.json();
-        
-        if (!data || !data.teams || data.teams.length === 0) {
-          statusDiv.textContent = "Aucune équipe correspondante trouvée.";
-          return;
-        }
-        
-        statusDiv.classList.add('hidden');
-        teamResults.classList.remove('hidden');
-        teamResults.innerHTML = '';
-        
-        data.teams.slice(0, 10).forEach(team => {
-          if (team.strSport !== 'Soccer' && team.strSport !== 'Rugby') return;
-          
-          const div = document.createElement('button');
-          div.type = 'button';
-          div.onclick = () => quickSearch(team.idTeam);
-          div.className = 'flex flex-col items-center justify-center p-3 rounded-xl border border-white/10 bg-white/5 hover:border-amber-400/50 hover:bg-white/10 transition-all text-center';
-          div.innerHTML = `
-            ${team.strBadge ? `<img src="${team.strBadge}" class="h-12 w-12 object-contain mb-2" />` : ''}
-            <span class="text-xs font-semibold text-white truncate w-full">${team.strTeam}</span>
-            <span class="text-[9px] text-gray-500 mt-0.5">${team.strCountry}</span>
-          `;
-          teamResults.appendChild(div);
-        });
-        
-        if (teamResults.children.length === 0) {
-          statusDiv.classList.remove('hidden');
-          statusDiv.textContent = "Aucune équipe trouvée.";
-          teamResults.classList.add('hidden');
-        }
-      } catch (err) {
-        statusDiv.textContent = "Erreur lors de la recherche.";
-        console.error(err);
-      }
-    }
-
-    // Trigger search on Enter key
-    document.getElementById('api-search-input').addEventListener('keypress', function(e) {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        searchTeam();
-      }
-    });
-
-    // Auto-load smart feed on tab matches
-    document.addEventListener("DOMContentLoaded", () => {
-      const tab = new URLSearchParams(window.location.search).get('tab') || 'matchs';
-      if (tab === 'matchs') {
-        loadSmartFeed();
-      }
-    });
   </script>
 </body>
 </html>

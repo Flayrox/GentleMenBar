@@ -1,233 +1,232 @@
 <?php
 declare(strict_types=1);
 
-// Configuration et chargement de la base de données
+// Charge la configuration et la connexion PDO
 require_once __DIR__ . '/../config/db.php';
 
-// Limite le déclenchement automatique à une seule fois par jour pour préserver les requêtes
+// Fuseau horaire de référence
+date_default_timezone_set('Europe/Paris');
+
+// Logique de protection : Limitation à un import par jour
 $todayStr = date('Y-m-d');
-$lastImport = config_value('last_auto_import_date', '');
-if ($lastImport === $todayStr) {
-    header('Content-Type: application/json; charset=utf-8');
-    echo json_encode(['success' => true, 'message' => 'Déjà synchronisé aujourd\'hui', 'date' => $todayStr]);
-    exit;
-}
+$lockFile = __DIR__ . '/last_import.txt';
 
-// Récupère la clé API TheSportsDB configurée (clé par défaut: 3)
-$apiKey = config_value('sportsdb_api_key', '3');
-
-// Envoi immédiat d'une réponse 200 OK au client pour continuer le script en arrière-plan sans bloquer (uniquement hors CLI)
-if (php_sapi_name() !== 'cli') {
-    if (function_exists('fastcgi_finish_request')) {
+// On n'active le verrou de date que si on n'est pas en mode CLI et qu'on ne force pas l'importation
+if (php_sapi_name() !== 'cli' && (!isset($_GET['force']) || (int)$_GET['force'] !== 1)) {
+    if (file_exists($lockFile) && trim((string)@file_get_contents($lockFile)) === $todayStr) {
         header('Content-Type: application/json; charset=utf-8');
-        echo json_encode(['success' => true, 'message' => 'Import automatique lancé en arrière-plan']);
-        fastcgi_finish_request();
-    } else {
-        ob_start();
-        header('Content-Type: application/json; charset=utf-8');
-        echo json_encode(['success' => true, 'message' => 'Import automatique lancé en arrière-plan']);
-        header('Connection: close');
-        header('Content-Length: ' . (string)ob_get_length());
-        ob_end_flush();
-        flush();
+        echo json_encode(['success' => true, 'message' => 'Déjà synchronisé aujourd\'hui (verrou actif)']);
+        exit;
     }
-    ignore_user_abort(true);
 }
 
-// Configuration d'arrière-plan
-set_time_limit(120);
-
-// Championnats à synchroniser avec leurs IDs TheSportsDB
-$leaguesToSync = [
-    ['id' => '4334', 'name' => 'Ligue 1', 'sport' => 'Soccer'],
-    ['id' => '4480', 'name' => 'Champions League', 'sport' => 'Soccer'],
-    ['id' => '4426', 'name' => 'Coupe du Monde', 'sport' => 'Soccer'],
-    ['id' => '4562', 'name' => 'Euro', 'sport' => 'Soccer'],
-    ['id' => '4328', 'name' => 'Premier League', 'sport' => 'Soccer'],
-    ['id' => '4335', 'name' => 'La Liga', 'sport' => 'Soccer'],
-    ['id' => '4332', 'name' => 'Serie A', 'sport' => 'Soccer'],
-    ['id' => '4396', 'name' => 'Ligue 2', 'sport' => 'Soccer'],
-    ['id' => '4484', 'name' => 'Coupe de France', 'sport' => 'Soccer'],
-    ['id' => '4415', 'name' => 'Top 14 Rugby', 'sport' => 'Rugby'],
-    ['id' => '4417', 'name' => 'Six Nations Rugby', 'sport' => 'Rugby']
-];
-
-// Fenêtre temporelle : aujourd'hui et les 15 prochains jours
+// Configuration de la fenêtre d'importation (aujourd'hui + 15 jours)
 $todayStart = new DateTime('today', new DateTimeZone('Europe/Paris'));
 $maxLimit = (new DateTime('today', new DateTimeZone('Europe/Paris')))->modify('+15 days');
 $maxLimit->setTime(23, 59, 59);
 
-$ctx = stream_context_create([
-    'http' => [
-        'timeout' => 4.0
-    ]
-]);
+// Mots-clés pour filtrer les affiches importantes
+$keywords = [
+    'PSG', 'Paris SG', 'Marseille', 'OM', 'Lyon', 'Lens', 'Toulouse', 'Stade Toulousain', 
+    'France', 'Real Madrid', 'Barcelona', 'Bayern', 'Arsenal', 'Manchester', 'Liverpool', 
+    'Juventus', 'Milan', 'Chelsea', 'City', 'Inter', 'Bordeaux', 'La Rochelle'
+];
+
+// Liste des calendriers iCal (.ics) à importer
+$calendars = [
+    'Coupe du Monde' => 'https://ical.fixtur.es/v2/fifa-world-cup.ics',
+    'Ligue 1' => 'https://ical.fixtur.es/v2/ligue-1.ics',
+    'Champions League' => 'https://ical.fixtur.es/v2/champions-league.ics',
+    'Europa League' => 'https://ical.fixtur.es/v2/europa-league.ics',
+    'Premier League' => 'https://ical.fixtur.es/v2/premier-league.ics',
+    'La Liga' => 'https://ical.fixtur.es/v2/la-liga.ics',
+    'Serie A' => 'https://ical.fixtur.es/v2/serie-a.ics',
+    'Top 14' => 'https://caltrics.com/ical/top-14-rugby-fixtures-all/80888.ics',
+    'Six Nations' => 'https://caltrics.com/ical/six-nations-rugby/80889.ics'
+];
 
 $importedCount = 0;
 
-foreach ($leaguesToSync as $league) {
-    try {
-        $url = "https://www.thesportsdb.com/api/v1/json/" . urlencode($apiKey) . "/eventsnextleague.php?id=" . urlencode($league['id']);
-        
+foreach ($calendars as $competition => $url) {
+    if (php_sapi_name() === 'cli') {
+        echo "Téléchargement de : {$competition} ({$url})...\n";
+    }
+
+    // Téléchargement sécurisé via cURL
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+    curl_setopt($ch, CURLOPT_USERAGENT, 'GentlemanPubBot/1.0');
+    $icsContent = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curlError = curl_error($ch);
+    curl_close($ch);
+
+    if ($icsContent === false || $httpCode !== 200) {
         if (php_sapi_name() === 'cli') {
-            echo "Querying: " . $league['name'] . " - " . $url . "\n";
+            echo "Erreur lors du téléchargement de {$competition} (code HTTP {$httpCode}). Erreur cURL : {$curlError}\n";
+        }
+        continue;
+    }
+
+    // Dépliage des lignes du fichier iCal (RFC 5545)
+    // Les lignes pliées commencent par un espace ou une tabulation sur la ligne suivante
+    $icsContent = preg_replace('/\r?\n[ \t]/', '', $icsContent);
+
+    // Découpage par événement VEVENT
+    $events = explode('BEGIN:VEVENT', $icsContent);
+    array_shift($events); // Enlève l'en-tête VCALENDAR
+
+    if (php_sapi_name() === 'cli') {
+        echo "Nombre d'événements trouvés : " . count($events) . "\n";
+    }
+
+    // Détermination du sport
+    $sport = ($competition === 'Top 14' || $competition === 'Six Nations') ? 'Rugby' : 'Soccer';
+
+    foreach ($events as $eventBlock) {
+        // Extraction de SUMMARY
+        $summary = '';
+        if (preg_match('/^SUMMARY:(.*)$/im', $eventBlock, $m)) {
+            $summary = trim($m[1]);
+            $summary = str_replace(['\\,', '\\;', '\\n', '\\r'], [',', ';', "\n", "\r"], $summary);
         }
 
-        $response = @file_get_contents($url, false, $ctx);
-        if ($response === false) {
-            if (php_sapi_name() === 'cli') {
-                echo "Error: file_get_contents returned false for " . $league['name'] . "\n";
-            }
+        if ($summary === '') {
             continue;
         }
 
-        $data = json_decode($response, true);
-        
-        if (php_sapi_name() === 'cli') {
-            echo "API Results for " . $league['name'] . ": " . (isset($data['events']) ? count($data['events']) : 0) . " items.\n";
-        }
+        // Vérification des mots-clés (sauf pour les compétitions majeures où l'on veut diffuser TOUS les matchs)
+        $bypassFilterCompetitions = ['Coupe du Monde', 'Euro', 'Six Nations'];
+        $isBypass = in_array($competition, $bypassFilterCompetitions, true);
 
-        if (empty($data['events'])) {
-            continue;
-        }
-
-        foreach ($data['events'] as $item) {
-            $apiEventId = (string)($item['idEvent'] ?? '');
-            $dateStr = $item['dateEvent'] ?? '';
-            $timeStr = $item['strTime'] ?? '00:00:00';
-            $homeName = $item['strHomeTeam'] ?? '';
-            $awayName = $item['strAwayTeam'] ?? '';
-            $homeLogo = $item['strHomeTeamBadge'] ?? '';
-            $awayLogo = $item['strAwayTeamBadge'] ?? '';
-            $sportType = $item['strSport'] ?? $league['sport'];
-
-            if ($apiEventId === '' || $dateStr === '' || $homeName === '' || $awayName === '') {
-                continue;
-            }
-
-            // Nettoyage de l'heure pour éviter les décalages de parsing
-            $timeStr = explode('+', $timeStr)[0];
-            $timeStr = explode('Z', $timeStr)[0];
-
-            // Les heures de TheSportsDB sont en UTC. On parse en UTC puis convertit en heure locale FR
-            try {
-                $dateObj = new DateTime($dateStr . 'T' . $timeStr, new DateTimeZone('UTC'));
-                $dateObj->setTimezone(new DateTimeZone('Europe/Paris'));
-            } catch (Throwable $t) {
-                continue;
-            }
-
-            if (php_sapi_name() === 'cli') {
-                echo " - Testing match: " . $homeName . " vs " . $awayName . " (Date: " . $dateObj->format('Y-m-d H:i:s') . ")";
-            }
-
-            // Vérification de la fenêtre temporelle de 15 jours
-            if ($dateObj < $todayStart || $dateObj > $maxLimit) {
-                if (php_sapi_name() === 'cli') {
-                    echo " -> Skipped: outside 15-day range (today is " . $todayStart->format('Y-m-d') . ", limit is " . $maxLimit->format('Y-m-d H:i:s') . ")\n";
-                }
-                continue;
-            }
-
-            // Règles de filtrage intelligent (Grand match ?)
-            $home = mb_strtolower($homeName, 'UTF-8');
-            $away = mb_strtolower($awayName, 'UTF-8');
-            $comp = mb_strtolower($league['name'], 'UTF-8');
-
-            $isMajorTournament = (
-                strpos($comp, 'world cup') !== false ||
-                strpos($comp, 'coupe du monde') !== false ||
-                strpos($comp, 'euro') !== false ||
-                strpos($comp, 'six nations') !== false
-            );
-
+        if (!$isBypass) {
             $hasKeyword = false;
-            $keywords = ['psg', 'paris sg', 'paris saint-germain', 'marseille', 'om', 'france', 'toulouse', 'monaco', 'lyon', 'real madrid', 'barcelona', 'toulon', 'racing 92', 'clermont', 'la rochelle', 'leinster', 'saracens'];
             foreach ($keywords as $kw) {
-                if (strpos($home, $kw) !== false || strpos($away, $kw) !== false) {
+                if (stripos($summary, $kw) !== false) {
                     $hasKeyword = true;
                     break;
                 }
             }
-
-            if (!$isMajorTournament && !$hasKeyword) {
-                if (php_sapi_name() === 'cli') {
-                    echo " -> Skipped: not a major tournament/team\n";
-                }
-                continue; // On n'importe pas ce match car il n'est pas considéré comme "grand match"
-            }
-
-            if (php_sapi_name() === 'cli') {
-                echo " -> MATCH DETECTED FOR IMPORT!\n";
-            }
-
-            $dateMatch = $dateObj->format('Y-m-d H:i:s');
-
-            // Vérification des doublons en base
-            $exists = false;
-            $checkStmt = $pdo->prepare('SELECT COUNT(*) FROM matchs WHERE api_event_id = :api_event_id');
-            $checkStmt->execute([':api_event_id' => $apiEventId]);
-            if ((int)$checkStmt->fetchColumn() > 0) {
-                $exists = true;
-            }
-
-            if (!$exists) {
-                $dayStart = $dateObj->format('Y-m-d 00:00:00');
-                $dayEnd = $dateObj->format('Y-m-d 23:59:59');
-                $checkStmt = $pdo->prepare('SELECT COUNT(*) FROM matchs WHERE equipe_1 = :e1 AND equipe_2 = :e2 AND date_match BETWEEN :dstart AND :dend');
-                $checkStmt->execute([
-                    ':e1' => $homeName,
-                    ':e2' => $awayName,
-                    ':dstart' => $dayStart,
-                    ':dend' => $dayEnd,
-                ]);
-                if ((int)$checkStmt->fetchColumn() > 0) {
-                    $exists = true;
-                }
-            }
-
-            if ($exists) {
-                // Mise à jour de la date, de la compétition et des logos si le match existe déjà
-                $updateStmt = $pdo->prepare('UPDATE matchs SET date_match = :date_match, image_path = :image_path_home, image_path_away = :image_path_away, competition = :competition, sport = :sport WHERE api_event_id = :api_event_id');
-                $updateStmt->execute([
-                    ':date_match' => $dateMatch,
-                    ':image_path_home' => $homeLogo !== '' ? $homeLogo : null,
-                    ':image_path_away' => $awayLogo !== '' ? $awayLogo : null,
-                    ':competition' => $league['name'],
-                    ':sport' => $sportType,
-                    ':api_event_id' => $apiEventId,
-                ]);
-            } else {
-                // Création et insertion
-                $slug = generate_unique_match_slug($pdo, $homeName, $awayName, $dateMatch);
-                $insertStmt = $pdo->prepare('INSERT INTO matchs (slug, equipe_1, equipe_2, competition, date_match, image_path, image_path_away, sport, api_event_id, statut, is_active) VALUES (:slug, :equipe_1, :equipe_2, :competition, :date_match, :image_path_home, :image_path_away, :sport, :api_event_id, \'scheduled\', 1)');
-                $insertStmt->execute([
-                    ':slug' => $slug,
-                    ':equipe_1' => $homeName,
-                    ':equipe_2' => $awayName,
-                    ':competition' => $league['name'],
-                    ':date_match' => $dateMatch,
-                    ':image_path_home' => $homeLogo !== '' ? $homeLogo : null,
-                    ':image_path_away' => $awayLogo !== '' ? $awayLogo : null,
-                    ':sport' => $sportType,
-                    ':api_event_id' => $apiEventId,
-                ]);
-                $importedCount++;
+            if (!$hasKeyword) {
+                continue;
             }
         }
-    } catch (Throwable $e) {
-        error_log('Error auto-importing league ' . $league['name'] . ': ' . $e->getMessage());
+
+        // Extraction de DTSTART
+        $matchDate = '';
+        if (preg_match('/^DTSTART(?:;TZID=([^:]+))?:([0-9]{8}T[0-9]{6}Z?)/im', $eventBlock, $m)) {
+            $tzName = !empty($m[1]) ? $m[1] : (strpos($m[2], 'Z') !== false ? 'UTC' : 'Europe/Paris');
+            $rawTime = str_replace('Z', '', $m[2]);
+            try {
+                $dateObj = new DateTime($rawTime, new DateTimeZone($tzName));
+                $dateObj->setTimezone(new DateTimeZone('Europe/Paris'));
+                $matchDate = $dateObj->format('Y-m-d H:i:s');
+            } catch (Throwable $e) {
+                continue;
+            }
+        } else if (preg_match('/^DTSTART;VALUE=DATE:([0-9]{8})/im', $eventBlock, $m)) {
+            $rawTime = $m[1] . 'T120000';
+            try {
+                $dateObj = new DateTime($rawTime, new DateTimeZone('Europe/Paris'));
+                $matchDate = $dateObj->format('Y-m-d H:i:s');
+            } catch (Throwable $e) {
+                continue;
+            }
+        }
+
+        if ($matchDate === '') {
+            continue;
+        }
+
+        // Contrôle de la fenêtre temporelle
+        $matchDateTime = new DateTime($matchDate, new DateTimeZone('Europe/Paris'));
+        if ($matchDateTime < $todayStart || $matchDateTime > $maxLimit) {
+            if (php_sapi_name() === 'cli') {
+                echo " - Ignoré (date hors limite) : {$summary} ({$matchDate})\n";
+            }
+            continue;
+        }
+
+        // Séparation Equipe 1 / Equipe 2
+        $teams = preg_split('/\s+(?:-|vs|c\.)\s+/i', $summary);
+        if (count($teams) >= 2) {
+            $equipe1 = trim($teams[0]);
+            $equipe2 = trim($teams[1]);
+        } else {
+            $equipe1 = $summary;
+            $equipe2 = 'Adversaire';
+        }
+
+        // Récupération de l'UID de l'événement iCal pour éviter les doublons absolus
+        $apiEventId = null;
+        if (preg_match('/^UID:(.*)$/im', $eventBlock, $m)) {
+            $apiEventId = trim($m[1]);
+        }
+
+        if (php_sapi_name() === 'cli') {
+            echo " - Match détecté : {$equipe1} vs {$equipe2} ({$matchDate}) [Sport: {$sport}]\n";
+        }
+
+        // Détermination du slug de manière intelligente
+        $slug = null;
+
+        // 1. Tenter de retrouver le slug du match existant via son UID iCal
+        if ($apiEventId !== null) {
+            $stmt = $pdo->prepare('SELECT slug FROM matchs WHERE api_event_id = :uid LIMIT 1');
+            $stmt->execute([':uid' => $apiEventId]);
+            $slug = $stmt->fetchColumn() ?: null;
+        }
+
+        // 2. Chercher s'il y a un match des mêmes équipes à une date proche (+/- 3 jours)
+        if ($slug === null) {
+            $dayStart = (clone $matchDateTime)->modify('-3 days')->format('Y-m-d H:i:s');
+            $dayEnd = (clone $matchDateTime)->modify('+3 days')->format('Y-m-d H:i:s');
+            $stmt = $pdo->prepare('SELECT slug FROM matchs WHERE equipe_1 = :e1 AND equipe_2 = :e2 AND date_match BETWEEN :dstart AND :dend LIMIT 1');
+            $stmt->execute([
+                ':e1' => $equipe1,
+                ':e2' => $equipe2,
+                ':dstart' => $dayStart,
+                ':dend' => $dayEnd
+            ]);
+            $slug = $stmt->fetchColumn() ?: null;
+        }
+
+        // 3. Si c'est un tout nouveau match, on génère un nouveau slug unique
+        if ($slug === null) {
+            $slug = generate_unique_match_slug($pdo, $equipe1, $equipe2, $matchDate);
+        }
+
+        // Insertion ou mise à jour de la date d'un match existant
+        $stmt = $pdo->prepare('INSERT INTO matchs (slug, equipe_1, equipe_2, competition, date_match, sport, api_event_id, statut, is_active) 
+            VALUES (:slug, :e1, :e2, :competition, :date_match, :sport, :api_event_id, \'scheduled\', 1)
+            ON DUPLICATE KEY UPDATE date_match = VALUES(date_match), api_event_id = VALUES(api_event_id)');
+        $stmt->execute([
+            ':slug' => $slug,
+            ':e1' => $equipe1,
+            ':e2' => $equipe2,
+            ':competition' => $competition,
+            ':date_match' => $matchDate,
+            ':sport' => $sport,
+            ':api_event_id' => $apiEventId
+        ]);
+        $importedCount++;
     }
 }
 
-// Mise à jour de la date d'importation dans site_config pour bloquer les futurs lancements aujourd'hui
+// Sauvegarde de la date d'importation dans le fichier local
 try {
-    $stmt = $pdo->prepare('INSERT INTO site_config (cle, valeur) VALUES ("last_auto_import_date", :val) ON DUPLICATE KEY UPDATE valeur = VALUES(valeur)');
-    $stmt->execute([':val' => $todayStr]);
+    file_put_contents($lockFile, $todayStr);
 } catch (Throwable $e) {
-    error_log('Error saving last_auto_import_date: ' . $e->getMessage());
+    error_log('Erreur lors de l\'enregistrement du verrou last_import.txt : ' . $e->getMessage());
 }
 
 if (php_sapi_name() === 'cli') {
-    echo "SUCCESS: Importation terminee. Matchs importes : " . $importedCount . "\n";
+    echo "SUCCESS: Importation terminée. Matchs importés : {$importedCount}\n";
+} else {
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode(['success' => true, 'message' => "Importation terminée. {$importedCount} matchs importés."]);
 }
