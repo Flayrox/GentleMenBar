@@ -154,7 +154,10 @@ if (!isset($meta_description)) {
         <button aria-label="Menu" onclick="toggleMobileMenu()" class="text-primary-container hover:text-primary transition-colors active:scale-95 duration-200 p-2 -ml-2">
             <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">menu</span>
         </button>
-        <a href="/" class="font-display-lg text-2xl text-primary-container uppercase tracking-widest text-glow hover:opacity-90 transition-opacity"><?php echo e($siteName); ?></a>
+        <a href="/" class="flex items-center gap-3 hover:opacity-95 transition-opacity group">
+            <img src="/assets/logo/G2.svg" alt="Gentleman Pub Logo" class="h-10 w-auto object-contain filter drop-shadow-[0_0_8px_rgba(212,175,55,0.4)] group-hover:scale-105 transition-transform" />
+            <span class="font-display-lg text-xl md:text-2xl text-primary-container uppercase tracking-widest text-glow hidden sm:inline"><?php echo e($siteName); ?></span>
+        </a>
         <a href="/admin.php" aria-label="Admin" class="w-10 h-10 rounded-full bg-primary-container/10 flex items-center justify-center border border-primary-container/30 active:scale-95 duration-200 backdrop-blur-sm hover:bg-primary-container/20 transition-colors">
             <span class="material-symbols-outlined text-primary-container" style="font-variation-settings: 'FILL' 1;">person</span>
         </a>

@@ -61,7 +61,7 @@ $keywords = [
 ];
 }
 
-// Liste des calendriers iCal (.ics) à importer (Football & Rugby)
+// Liste des calendriers iCal (.ics) à importer (Football, Rugby, NFL, Basketball)
 $calendars = [
     'Football' => [
         'Coupe du Monde' => 'https://ics.fixtur.es/v2/league/fifa-world-cup-2026.ics',
@@ -75,13 +75,20 @@ $calendars = [
     'Rugby' => [
         'Six Nations' => 'https://ics.fixtur.es/v2/league/six-nations.ics',
         'Top 14' => 'https://ics.fixtur.es/v2/league/top-14.ics'
+    ],
+    'NFL' => [
+        'NFL Regular Season' => 'https://ics.fixtur.es/v2/league/nfl.ics',
+        'Super Bowl' => 'https://ics.fixtur.es/v2/league/nfl.ics'
+    ],
+    'Basketball' => [
+        'NBA' => 'https://ics.fixtur.es/v2/league/nba.ics'
     ]
 ];
 
 $importedCount = 0;
 
 foreach ($calendars as $sportCategory => $list) {
-    $sport = ($sportCategory === 'Rugby') ? 'Rugby' : 'Soccer';
+    $sport = $sportCategory;
     foreach ($list as $competition => $url) {
         if (php_sapi_name() === 'cli') {
             echo "Téléchargement de [{$sport}] {$competition} ({$url})...\n";

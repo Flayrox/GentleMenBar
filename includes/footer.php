@@ -101,8 +101,11 @@ $privacyLabel = config_value('footer_privacy_label', 'Espace Privé');
 <footer class="hidden md:block bg-surface-container/40 border-t border-outline-variant/20 mt-12">
     <div class="max-w-6xl mx-auto px-4 py-8 grid grid-cols-3 gap-8">
         <div>
-            <h3 class="font-display-lg text-2xl text-primary mb-4"><?php echo e($siteName); ?></h3>
-            <p class="text-on-surface-variant text-sm"><?php echo e(config_value('site_tagline')); ?></p>
+            <div class="flex items-center gap-3 mb-4">
+                <img src="/assets/logo/G2.svg" alt="Gentleman Pub Logo" class="h-12 w-auto object-contain filter drop-shadow-[0_0_10px_rgba(212,175,55,0.4)]" />
+                <h3 class="font-display-lg text-2xl text-primary"><?php echo e($siteName); ?></h3>
+            </div>
+            <p class="text-on-surface-variant text-sm leading-relaxed"><?php echo e(config_value('site_tagline')); ?></p>
         </div>
         <div>
             <h4 class="font-headline-md text-lg text-primary mb-4"><?php echo e(config_value('footer_hours_title', 'Horaires')); ?></h4>
