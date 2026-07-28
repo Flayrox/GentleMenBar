@@ -13,10 +13,12 @@ ini_set('session.use_strict_mode', '1');
 session_start();
 require_once __DIR__ . '/config/db.php';
 
-// Identifiants simples et robustes pour Hostinger
-$ADMIN_USERNAME = 'admin';
-// Hash généré avec password_hash('Gentleman2026!', PASSWORD_BCRYPT)
-$ADMIN_PASSWORD_HASH = '$2b$10$O3EqPTpkCa0aiiq/429CrOiS812Zq88cP2OFrccx0pvcn0tEXw.LO';
+// Chargement dynamique des identifiants (sécurisés via config/env.php ou variables d'environnement)
+$envFile = __DIR__ . '/config/env.php';
+$envConfig = file_exists($envFile) ? require $envFile : [];
+
+$ADMIN_USERNAME = getenv('ADMIN_USER') ?: ($envConfig['ADMIN_USER'] ?? 'admin');
+$ADMIN_PASSWORD_HASH = getenv('ADMIN_PASS_HASH') ?: ($envConfig['ADMIN_PASS_HASH'] ?? '$2b$10$O3EqPTpkCa0aiiq/429CrOiS812Zq88cP2OFrccx0pvcn0tEXw.LO');
 
 if (!isset($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));

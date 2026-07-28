@@ -1,0 +1,6 @@
+# Fichiers de configuration contenant des identifiants sensibles
+config/env.php
+
+# Fichiers temporaires et logs
+*.log
+.DS_Store

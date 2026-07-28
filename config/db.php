@@ -1,19 +1,12 @@
 <?php
 declare(strict_types=1);
-// Connexion PDO sécurisée à la base MySQL (Support local et Hostinger)
-$isLocal = in_array(($_SERVER['REMOTE_ADDR'] ?? ''), ['127.0.0.1', '::1'], true) || (php_sapi_name() === 'cli' && !getenv('HOSTINGER_ENV'));
+$envFile = __DIR__ . '/env.php';
+$envConfig = file_exists($envFile) ? require $envFile : [];
 
-if ($isLocal) {
-    $dbHost = 'localhost';
-    $dbName = 'legentlemanpub';
-    $dbUser = 'root';
-    $dbPass = '';
-} else {
-    $dbHost = 'localhost';
-    $dbName = 'u854953942_gentlemen';
-    $dbUser = 'u854953942_gentlemen';
-    $dbPass = 'nVUtuFvr9jLWK7U';
-}
+$dbHost = getenv('DB_HOST') ?: ($envConfig['DB_HOST'] ?? 'localhost');
+$dbName = getenv('DB_NAME') ?: ($envConfig['DB_NAME'] ?? 'legentlemanpub');
+$dbUser = getenv('DB_USER') ?: ($envConfig['DB_USER'] ?? 'root');
+$dbPass = getenv('DB_PASS') !== false ? getenv('DB_PASS') : ($envConfig['DB_PASS'] ?? '');
 
 
 $dsn = "mysql:host={$dbHost};dbname={$dbName};charset=utf8mb4";
