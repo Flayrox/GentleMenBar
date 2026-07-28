@@ -156,11 +156,13 @@ echo "<script type=\"application/ld+json\">" . json_encode($event, JSON_UNESCAPE
         </p>
       </div>
       <div class="flex flex-col items-center gap-3 w-full">
-        <a href="<?php echo e(config_value('booking_privateaser_url', 'https://www.privateaser.com/lieu/5113-le-gentleman-pub')); ?>" target="_blank" rel="noopener" class="w-full text-center bg-amber-400 text-black px-4 py-3 rounded-xl font-bold uppercase tracking-wider hover:bg-amber-300 transition-all shadow-[0_0_15px_rgba(212,175,55,0.2)]">
-            🎯 Réserver une table
-        </a>
+        <!-- Privateaser Direct Modal Trigger Button -->
+        <button type="button" onclick="openPrivateaserModal()" class="w-full text-center bg-amber-400 text-black px-4 py-3 rounded-xl font-bold uppercase tracking-wider hover:bg-amber-300 transition-all shadow-[0_0_20px_rgba(212,175,55,0.25)] flex items-center justify-center gap-2 cursor-pointer active:scale-95">
+            <span>🎯 Réserver une table en direct</span>
+        </button>
+
         <?php if (!empty(config_value('booking_fanzo_url'))): ?>
-          <a href="<?php echo e(config_value('booking_fanzo_url')); ?>" target="_blank" rel="noopener" class="w-full text-center bg-white/5 border border-white/10 text-gray-200 px-4 py-2 rounded-xl font-semibold hover:border-amber-400/40 hover:text-amber-300 transition-all text-xs flex items-center justify-center gap-2">
+          <a href="<?php echo e(config_value('booking_fanzo_url', 'https://www.fanzo.com/fr/bar/76733/gentleman-pub')); ?>" target="_blank" rel="noopener" class="w-full text-center bg-white/5 border border-white/10 text-gray-200 px-4 py-2 rounded-xl font-semibold hover:border-amber-400/40 hover:text-amber-300 transition-all text-xs flex items-center justify-center gap-2">
               <span>⚽ Retrouvez-nous sur Fanzo</span>
           </a>
         <?php endif; ?>
@@ -175,6 +177,33 @@ echo "<script type=\"application/ld+json\">" . json_encode($event, JSON_UNESCAPE
     </div>
   </article>
 </div>
+
+<!-- Privateaser Widget Overlay Modal -->
+<div id="privateaser-modal" class="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-md hidden">
+  <div class="w-full max-w-2xl bg-[#121212] border border-amber-400/30 rounded-2xl shadow-2xl overflow-hidden relative flex flex-col h-[85vh] max-h-[700px]">
+    <div class="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-[#1A1A1A]">
+      <h3 class="font-display text-lg text-amber-300 font-bold flex items-center gap-2">
+        <span>🎯</span>
+        <span>Réserver votre table au Gentleman Pub</span>
+      </h3>
+      <button type="button" onclick="closePrivateaserModal()" class="text-gray-400 hover:text-white text-2xl font-bold p-1">&times;</button>
+    </div>
+    <div class="flex-1 w-full bg-white relative">
+      <iframe id="privateaser-iframe" src="<?php echo e(config_value('booking_privateaser_widget_url', 'https://widget.privateaser.com/v/6ea54c4c-5113')); ?>" class="w-full h-full border-0" allow="payment"></iframe>
+    </div>
+  </div>
+</div>
+
+<script>
+function openPrivateaserModal() {
+  document.getElementById('privateaser-modal').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+}
+function closePrivateaserModal() {
+  document.getElementById('privateaser-modal').classList.add('hidden');
+  document.body.style.overflow = '';
+}
+</script>
 
 <?php
 require __DIR__ . '/includes/footer.php';
