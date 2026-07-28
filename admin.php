@@ -299,6 +299,7 @@ if (is_admin_authenticated() && $_SERVER['REQUEST_METHOD'] === 'POST') {
           'facebook_link' => trim((string)($_POST['facebook_link'] ?? '')),
           'booking_privateaser_url' => trim((string)($_POST['booking_privateaser_url'] ?? '')),
           'booking_mistergoodbeer_url' => trim((string)($_POST['booking_mistergoodbeer_url'] ?? '')),
+          'booking_fanzo_url' => trim((string)($_POST['booking_fanzo_url'] ?? '')),
           'horaires_lundi' => trim((string)($_POST['horaires_lundi'] ?? '11:00 - 02:00')),
           'horaires_mardi' => trim((string)($_POST['horaires_mardi'] ?? '11:00 - 02:00')),
           'horaires_mercredi' => trim((string)($_POST['horaires_mercredi'] ?? '11:00 - 02:00')),
@@ -1039,8 +1040,12 @@ $heroBgImage = config_value('hero_bg_image', '/assets/uploads/hero-bg.jpg');
               <input name="bar_telephone" value="<?php echo e(config_value('bar_telephone')); ?>" class="w-full rounded-lg bg-[#121212] border border-white/10 px-4 py-3 text-white outline-none focus:border-amber-400">
             </div>
             <div>
-              <label class="mb-2 block text-sm text-gray-300">Lien Privateaser</label>
-              <input name="booking_privateaser_url" value="<?php echo e(config_value('booking_privateaser_url')); ?>" class="w-full rounded-lg bg-[#121212] border border-white/10 px-4 py-3 text-white outline-none focus:border-amber-400">
+              <label class="mb-2 block text-sm text-gray-300">Lien Privateaser (Réservation)</label>
+              <input name="booking_privateaser_url" value="<?php echo e(config_value('booking_privateaser_url', 'https://www.privateaser.com/lieu/5113-le-gentleman-pub')); ?>" class="w-full rounded-lg bg-[#121212] border border-white/10 px-4 py-3 text-white outline-none focus:border-amber-400">
+            </div>
+            <div>
+              <label class="mb-2 block text-sm text-gray-300">Lien Fanzo (ex-MatchPint)</label>
+              <input name="booking_fanzo_url" placeholder="https://www.fanzo.com/fr/bar/..." value="<?php echo e(config_value('booking_fanzo_url')); ?>" class="w-full rounded-lg bg-[#121212] border border-white/10 px-4 py-3 text-white outline-none focus:border-amber-400">
             </div>
             <div>
               <label class="mb-2 block text-sm text-gray-300">Lien MisterGoodBeer</label>

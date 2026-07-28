@@ -159,6 +159,11 @@ echo "<script type=\"application/ld+json\">" . json_encode($event, JSON_UNESCAPE
         <a href="<?php echo e(config_value('booking_privateaser_url', 'https://www.privateaser.com/lieu/5113-le-gentleman-pub')); ?>" target="_blank" rel="noopener" class="w-full text-center bg-amber-400 text-black px-4 py-3 rounded-xl font-bold uppercase tracking-wider hover:bg-amber-300 transition-all shadow-[0_0_15px_rgba(212,175,55,0.2)]">
             🎯 Réserver une table
         </a>
+        <?php if (!empty(config_value('booking_fanzo_url'))): ?>
+          <a href="<?php echo e(config_value('booking_fanzo_url')); ?>" target="_blank" rel="noopener" class="w-full text-center bg-white/5 border border-white/10 text-gray-200 px-4 py-2 rounded-xl font-semibold hover:border-amber-400/40 hover:text-amber-300 transition-all text-xs flex items-center justify-center gap-2">
+              <span>⚽ Retrouvez-nous sur Fanzo</span>
+          </a>
+        <?php endif; ?>
         <a href="tel:<?php echo preg_replace('/[^0-9+]/', '', config_value('bar_telephone', '0171717171')); ?>" class="w-full text-center border border-amber-400/40 text-amber-300 px-4 py-2.5 rounded-xl font-semibold hover:bg-amber-400/10 transition-all text-xs flex items-center justify-center gap-2">
             📞 Appeler le bar (<?php echo e(config_value('bar_telephone', '01 71 71 71 71')); ?>)
         </a>
