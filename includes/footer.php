@@ -118,9 +118,13 @@ $privacyLabel = config_value('footer_privacy_label', 'Espace Privé');
             <h4 class="font-headline-md text-lg text-primary mb-4"><?php echo e(config_value('footer_socials_title', 'Contact')); ?></h4>
             <p class="text-on-surface-variant text-sm"><?php echo e($address); ?></p>
             <p class="text-on-surface-variant text-sm"><a href="tel:<?php echo preg_replace('/[^0-9+]/', '', $telephone); ?>" class="text-primary hover:text-primary-fixed"><?php echo e($telephone); ?></a></p>
-            <div class="flex gap-3 mt-4 text-sm">
+            <div class="flex flex-wrap gap-3 mt-4 text-sm">
                 <a href="<?php echo e($facebook); ?>" target="_blank" rel="noopener" class="text-primary hover:text-primary-fixed">Facebook</a>
                 <a href="<?php echo e($instagram); ?>" target="_blank" rel="noopener" class="text-primary hover:text-primary-fixed">Instagram</a>
+                <?php $fanzoUrl = config_value('booking_fanzo_url', 'https://www.fanzo.com/fr/bar/76733/gentleman-pub'); ?>
+                <?php if (!empty($fanzoUrl)): ?>
+                  <a href="<?php echo e($fanzoUrl); ?>" target="_blank" rel="noopener" class="text-primary hover:text-primary-fixed">Fanzo</a>
+                <?php endif; ?>
             </div>
         </div>
     </div>

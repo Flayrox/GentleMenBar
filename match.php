@@ -161,8 +161,9 @@ echo "<script type=\"application/ld+json\">" . json_encode($event, JSON_UNESCAPE
             <span>🎯 Réserver une table en direct</span>
         </button>
 
-        <?php if (!empty(config_value('booking_fanzo_url'))): ?>
-          <a href="<?php echo e(config_value('booking_fanzo_url', 'https://www.fanzo.com/fr/bar/76733/gentleman-pub')); ?>" target="_blank" rel="noopener" class="w-full text-center bg-white/5 border border-white/10 text-gray-200 px-4 py-2 rounded-xl font-semibold hover:border-amber-400/40 hover:text-amber-300 transition-all text-xs flex items-center justify-center gap-2">
+        <?php $fanzoLink = config_value('booking_fanzo_url', 'https://www.fanzo.com/fr/bar/76733/gentleman-pub'); ?>
+        <?php if (!empty($fanzoLink)): ?>
+          <a href="<?php echo e($fanzoLink); ?>" target="_blank" rel="noopener" class="w-full text-center bg-white/5 border border-white/10 text-gray-200 px-4 py-2 rounded-xl font-semibold hover:border-amber-400/40 hover:text-amber-300 transition-all text-xs flex items-center justify-center gap-2">
               <span>⚽ Retrouvez-nous sur Fanzo</span>
           </a>
         <?php endif; ?>
