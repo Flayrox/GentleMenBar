@@ -24,6 +24,8 @@ CREATE TABLE IF NOT EXISTS `matchs` (
   `is_featured` TINYINT(1) NOT NULL DEFAULT 0,
   `is_active` TINYINT(1) NOT NULL DEFAULT 1,
   `api_event_id` VARCHAR(255) DEFAULT NULL,
+  `chaine_tv` VARCHAR(100) DEFAULT 'Écrans HD du bar',
+  `ecran_nb` INT UNSIGNED NOT NULL DEFAULT 4,
   PRIMARY KEY (`id`),
   UNIQUE KEY `slug_unique` (`slug`),
   KEY `date_match_idx` (`date_match`),

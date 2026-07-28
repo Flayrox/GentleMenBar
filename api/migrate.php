@@ -23,7 +23,9 @@ try {
         'image_path_away' => "ALTER TABLE `matchs` ADD COLUMN `image_path_away` VARCHAR(255) DEFAULT NULL",
         'sport'           => "ALTER TABLE `matchs` ADD COLUMN `sport` VARCHAR(100) NOT NULL DEFAULT 'Soccer'",
         'is_featured'     => "ALTER TABLE `matchs` ADD COLUMN `is_featured` TINYINT(1) NOT NULL DEFAULT 0",
-        'api_event_id'    => "ALTER TABLE `matchs` ADD COLUMN `api_event_id` VARCHAR(255) DEFAULT NULL"
+        'api_event_id'    => "ALTER TABLE `matchs` ADD COLUMN `api_event_id` VARCHAR(255) DEFAULT NULL",
+        'chaine_tv'       => "ALTER TABLE `matchs` ADD COLUMN `chaine_tv` VARCHAR(100) DEFAULT 'Écrans HD du bar'",
+        'ecran_nb'        => "ALTER TABLE `matchs` ADD COLUMN `ecran_nb` INT UNSIGNED NOT NULL DEFAULT 4"
     ];
 
     $changes = 0;

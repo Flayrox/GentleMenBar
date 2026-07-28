@@ -16,15 +16,32 @@ function build_datetime_from_clock(DateTimeImmutable $base, string $clock): Date
 function is_open_now(): bool
 {
     $now = new DateTimeImmutable('now', new DateTimeZone('Europe/Paris'));
-    $dow = (int)$now->format('N');
+    $dow = (int)$now->format('N'); // 1 = Lundi, 7 = Dimanche
 
-    if ($dow === 7) {
-        $schedule = parse_schedule_window(config_value('horaires_dimanche', '12:00 - 00:00'));
-    } elseif (in_array($dow, [5, 6], true)) {
-        $schedule = parse_schedule_window(config_value('horaires_weekend', '11:00 - 05:00'));
-    } else {
-        $schedule = parse_schedule_window(config_value('horaires_semaine', '11:00 - 02:00'));
-    }
+    $dayKeys = [
+        1 => 'horaires_lundi',
+        2 => 'horaires_mardi',
+        3 => 'horaires_mercredi',
+        4 => 'horaires_jeudi',
+        5 => 'horaires_vendredi',
+        6 => 'horaires_samedi',
+        7 => 'horaires_dimanche'
+    ];
+
+    $defaultSchedules = [
+        1 => '11:00 - 02:00',
+        2 => '11:00 - 02:00',
+        3 => '11:00 - 02:00',
+        4 => '11:00 - 02:00',
+        5 => '11:00 - 05:00',
+        6 => '11:00 - 05:00',
+        7 => '12:00 - 00:00'
+    ];
+
+    $configKey = $dayKeys[$dow] ?? 'horaires_lundi';
+    $defaultSchedule = $defaultSchedules[$dow] ?? '11:00 - 02:00';
+
+    $schedule = parse_schedule_window(config_value($configKey, $defaultSchedule));
 
     $open = build_datetime_from_clock($now, $schedule['open']);
     $close = build_datetime_from_clock($now, $schedule['close']);
@@ -89,10 +106,11 @@ $privacyLabel = config_value('footer_privacy_label', 'Espace Privé');
         </div>
         <div>
             <h4 class="font-headline-md text-lg text-primary mb-4"><?php echo e(config_value('footer_hours_title', 'Horaires')); ?></h4>
-            <ul class="text-on-surface-variant text-sm space-y-1">
-                <li>Semaine: <?php echo e(config_value('horaires_semaine')); ?></li>
-                <li>Weekend: <?php echo e(config_value('horaires_weekend')); ?></li>
-                <li>Dimanche: <?php echo e(config_value('horaires_dimanche')); ?></li>
+            <ul class="text-on-surface-variant text-xs space-y-1">
+                <li>Lun - Mer: <?php echo e(config_value('horaires_lundi', '11:00 - 02:00')); ?></li>
+                <li>Jeu: <?php echo e(config_value('horaires_jeudi', '11:00 - 02:00')); ?></li>
+                <li>Ven - Sam: <?php echo e(config_value('horaires_vendredi', '11:00 - 05:00')); ?></li>
+                <li>Dimanche: <?php echo e(config_value('horaires_dimanche', '12:00 - 00:00')); ?></li>
                 <li class="mt-3 font-semibold text-<?php echo $openStatusClass; ?>"><?php echo e($openStatus); ?></li>
             </ul>
         </div>
@@ -107,26 +125,9 @@ $privacyLabel = config_value('footer_privacy_label', 'Espace Privé');
         </div>
     </div>
     <div class="border-t border-outline-variant/20 text-center text-on-surface-variant text-sm py-4">
-        © <?php echo date('Y'); ?> <?php echo e($siteName); ?> — <?php echo e($copyText); ?> · <a href="/le-comptoir" class="text-primary hover:text-primary-fixed"><?php echo e($privacyLabel); ?></a>
+        © <?php echo date('Y'); ?> <?php echo e($siteName); ?> — <?php echo e($copyText); ?> · <a href="/admin.php" class="text-primary hover:text-primary-fixed"><?php echo e($privacyLabel); ?></a>
     </div>
 </footer>
-
-<script>
-// Importateur automatique silencieux de matchs (s'exécute en arrière-plan)
-(function() {
-    if (window.requestIdleCallback) {
-        window.requestIdleCallback(function() {
-            fetch('/api/auto-import.php').catch(function(err) { console.warn('Auto-import error:', err); });
-        });
-    } else {
-        window.addEventListener('load', function() {
-            setTimeout(function() {
-                fetch('/api/auto-import.php').catch(function(err) { console.warn('Auto-import error:', err); });
-            }, 1000);
-        });
-    }
-})();
-</script>
 </body>
 </html>
 

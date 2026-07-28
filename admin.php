@@ -28,7 +28,7 @@ if (!isset($_SESSION['flash'])) {
 
 function redirect_admin(string $tab = 'matchs'): void
 {
-  header('Location: /le-comptoir?tab=' . urlencode($tab));
+  header('Location: /admin.php?tab=' . urlencode($tab));
     exit;
 }
 
@@ -299,9 +299,15 @@ if (is_admin_authenticated() && $_SERVER['REQUEST_METHOD'] === 'POST') {
           'facebook_link' => trim((string)($_POST['facebook_link'] ?? '')),
           'booking_privateaser_url' => trim((string)($_POST['booking_privateaser_url'] ?? '')),
           'booking_mistergoodbeer_url' => trim((string)($_POST['booking_mistergoodbeer_url'] ?? '')),
-          'horaires_semaine' => trim((string)($_POST['horaires_semaine'] ?? '')),
-          'horaires_weekend' => trim((string)($_POST['horaires_weekend'] ?? '')),
-          'horaires_dimanche' => trim((string)($_POST['horaires_dimanche'] ?? '')),
+          'horaires_lundi' => trim((string)($_POST['horaires_lundi'] ?? '11:00 - 02:00')),
+          'horaires_mardi' => trim((string)($_POST['horaires_mardi'] ?? '11:00 - 02:00')),
+          'horaires_mercredi' => trim((string)($_POST['horaires_mercredi'] ?? '11:00 - 02:00')),
+          'horaires_jeudi' => trim((string)($_POST['horaires_jeudi'] ?? '11:00 - 02:00')),
+          'horaires_vendredi' => trim((string)($_POST['horaires_vendredi'] ?? '11:00 - 05:00')),
+          'horaires_samedi' => trim((string)($_POST['horaires_samedi'] ?? '11:00 - 05:00')),
+          'horaires_dimanche' => trim((string)($_POST['horaires_dimanche'] ?? '12:00 - 00:00')),
+          'happy_hour_start' => trim((string)($_POST['happy_hour_start'] ?? '17:00')),
+          'happy_hour_end' => trim((string)($_POST['happy_hour_end'] ?? '20:00')),
           'sportsdb_api_key' => trim((string)($_POST['sportsdb_api_key'] ?? '')),
         ];
         foreach ($flashConfig as $key => $value) {
@@ -377,7 +383,15 @@ if (is_admin_authenticated() && $_SERVER['REQUEST_METHOD'] === 'POST') {
             $id = (int)($_POST['id'] ?? 0);
             $stmt = $pdo->prepare('UPDATE matchs SET is_active = 0 WHERE id = :id');
             $stmt->execute([':id' => $id]);
-            set_flash('success', 'Match désactivé.');
+            set_flash('success', 'Match masqué du site.');
+            redirect_admin('matchs');
+        }
+
+        if ($action === 'enable_match') {
+            $id = (int)($_POST['id'] ?? 0);
+            $stmt = $pdo->prepare('UPDATE matchs SET is_active = 1 WHERE id = :id');
+            $stmt->execute([':id' => $id]);
+            set_flash('success', 'Match activé et affiché sur le site.');
             redirect_admin('matchs');
         }
 
@@ -391,16 +405,34 @@ if (is_admin_authenticated() && $_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($action === 'update_product') {
             $id = (int)($_POST['id'] ?? 0);
+            $nom = trim((string)($_POST['nom'] ?? ''));
+            $description = trim((string)($_POST['description'] ?? ''));
+            $categorie = trim((string)($_POST['categorie'] ?? ''));
             $prixNormal = (string)($_POST['prix_normal'] ?? '0');
             $prixHappy = (string)($_POST['prix_happy_hour'] ?? '');
 
-            $stmt = $pdo->prepare('UPDATE carte_produits SET prix_normal = :prix_normal, prix_happy_hour = :prix_happy_hour WHERE id = :id');
+            if ($nom === '') {
+                throw new RuntimeException('Le nom du produit ne peut pas être vide.');
+            }
+
+            $stmt = $pdo->prepare('UPDATE carte_produits SET nom = :nom, description = :description, categorie = :categorie, prix_normal = :prix_normal, prix_happy_hour = :prix_happy_hour WHERE id = :id');
             $stmt->execute([
+                ':nom' => $nom,
+                ':description' => $description,
+                ':categorie' => $categorie,
                 ':prix_normal' => number_format((float)$prixNormal, 2, '.', ''),
                 ':prix_happy_hour' => $prixHappy === '' ? null : number_format((float)$prixHappy, 2, '.', ''),
                 ':id' => $id,
             ]);
             set_flash('success', 'Produit mis à jour.');
+            redirect_admin('carte');
+        }
+
+        if ($action === 'delete_product') {
+            $id = (int)($_POST['id'] ?? 0);
+            $stmt = $pdo->prepare('DELETE FROM carte_produits WHERE id = :id');
+            $stmt->execute([':id' => $id]);
+            set_flash('success', 'Produit supprimé.');
             redirect_admin('carte');
         }
 
@@ -561,10 +593,10 @@ $heroBgImage = config_value('hero_bg_image', '/assets/uploads/hero-bg.jpg');
     <?php endif; ?>
 
     <div class="mb-6 flex flex-wrap gap-3">
-      <a href="/le-comptoir?tab=matchs" class="rounded-full px-4 py-2 <?php echo $tab === 'matchs' ? 'bg-amber-400 text-black' : 'bg-white/5 text-gray-300'; ?>">Matchs</a>
-      <a href="/le-comptoir?tab=carte" class="rounded-full px-4 py-2 <?php echo $tab === 'carte' ? 'bg-amber-400 text-black' : 'bg-white/5 text-gray-300'; ?>">Carte</a>
-      <a href="/le-comptoir?tab=design" class="rounded-full px-4 py-2 <?php echo $tab === 'design' ? 'bg-amber-400 text-black' : 'bg-white/5 text-gray-300'; ?>">Design & Photos</a>
-      <a href="/le-comptoir?tab=infos" class="rounded-full px-4 py-2 <?php echo $tab === 'infos' ? 'bg-amber-400 text-black' : 'bg-white/5 text-gray-300'; ?>">Infos du Bar</a>
+      <a href="/admin.php?tab=matchs" class="rounded-full px-4 py-2 <?php echo $tab === 'matchs' ? 'bg-amber-400 text-black' : 'bg-white/5 text-gray-300'; ?>">Matchs</a>
+      <a href="/admin.php?tab=carte" class="rounded-full px-4 py-2 <?php echo $tab === 'carte' ? 'bg-amber-400 text-black' : 'bg-white/5 text-gray-300'; ?>">Carte</a>
+      <a href="/admin.php?tab=design" class="rounded-full px-4 py-2 <?php echo $tab === 'design' ? 'bg-amber-400 text-black' : 'bg-white/5 text-gray-300'; ?>">Design & Photos</a>
+      <a href="/admin.php?tab=infos" class="rounded-full px-4 py-2 <?php echo $tab === 'infos' ? 'bg-amber-400 text-black' : 'bg-white/5 text-gray-300'; ?>">Infos du Bar</a>
     </div>
 
     <?php if ($tab === 'matchs'): ?>
@@ -849,13 +881,24 @@ $heroBgImage = config_value('hero_bg_image', '/assets/uploads/hero-bg.jpg');
                           <?php endif; ?>
                         </form>
                         
-                        <!-- Active/Disable -->
+                        <!-- Active / Masquer Toggle -->
                         <?php if ((int)$match['is_active'] === 1): ?>
                           <form method="post" style="display:inline-block">
                             <input type="hidden" name="csrf_token" value="<?php echo e($_SESSION['csrf_token']); ?>">
                             <input type="hidden" name="action" value="disable_match">
                             <input type="hidden" name="id" value="<?php echo (int)$match['id']; ?>">
-                            <button type="submit" class="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-gray-400 hover:bg-white/5 transition-all">Désactiver</button>
+                            <button type="submit" class="rounded-lg bg-emerald-500/10 border border-emerald-500/30 px-3 py-1.5 text-xs text-emerald-400 font-semibold hover:bg-red-500/20 hover:text-red-300 hover:border-red-500/40 transition-all flex items-center gap-1">
+                              ✓ En ligne (Masquer)
+                            </button>
+                          </form>
+                        <?php else: ?>
+                          <form method="post" style="display:inline-block">
+                            <input type="hidden" name="csrf_token" value="<?php echo e($_SESSION['csrf_token']); ?>">
+                            <input type="hidden" name="action" value="enable_match">
+                            <input type="hidden" name="id" value="<?php echo (int)$match['id']; ?>">
+                            <button type="submit" class="rounded-lg bg-gray-500/10 border border-gray-500/20 px-3 py-1.5 text-xs text-gray-400 font-semibold hover:bg-emerald-500/20 hover:text-emerald-300 hover:border-emerald-500/40 transition-all flex items-center gap-1">
+                              ✕ Masqué (Afficher)
+                            </button>
                           </form>
                         <?php endif; ?>
                         
@@ -1009,6 +1052,11 @@ $heroBgImage = config_value('hero_bg_image', '/assets/uploads/hero-bg.jpg');
               <p class="mt-2 text-xs text-gray-500">Laissez vide ou '3' pour utiliser la clé gratuite. Une clé payante permet de charger la totalité des matchs de chaque championnat.</p>
             </div>
             <div>
+              <label class="mb-2 block text-sm text-gray-300">Équipes favorites à importer (Mots-clés séparés par des virgules)</label>
+              <input name="auto_import_keywords" placeholder="Ex: PSG, OM, France, Stade Toulousain, Real Madrid" value="<?php echo e(config_value('auto_import_keywords', 'PSG, OM, France, Stade Toulousain, Real Madrid, Barcelona, Arsenal, Bayern')); ?>" class="w-full rounded-lg bg-[#121212] border border-white/10 px-4 py-3 text-white outline-none focus:border-amber-400">
+              <p class="mt-2 text-xs text-gray-500">Seuls les matchs contenant au moins une de ces équipes seront automatiquement importés dans le programme du bar.</p>
+            </div>
+            <div>
               <label class="mb-2 block text-sm text-gray-300">Lien Instagram</label>
               <input name="insta_link" value="<?php echo e(config_value('insta_link')); ?>" class="w-full rounded-lg bg-[#121212] border border-white/10 px-4 py-3 text-white outline-none focus:border-amber-400">
             </div>
@@ -1016,17 +1064,48 @@ $heroBgImage = config_value('hero_bg_image', '/assets/uploads/hero-bg.jpg');
               <label class="mb-2 block text-sm text-gray-300">Lien Facebook</label>
               <input name="facebook_link" value="<?php echo e(config_value('facebook_link')); ?>" class="w-full rounded-lg bg-[#121212] border border-white/10 px-4 py-3 text-white outline-none focus:border-amber-400">
             </div>
-            <div>
-              <label class="mb-2 block text-sm text-gray-300">Horaires semaine</label>
-              <input name="horaires_semaine" value="<?php echo e(config_value('horaires_semaine')); ?>" class="w-full rounded-lg bg-[#121212] border border-white/10 px-4 py-3 text-white outline-none focus:border-amber-400">
+            <div class="md:col-span-2 border-t border-white/10 pt-4 mt-2">
+              <h4 class="text-base font-display text-amber-300 mb-3">🗓️ Horaires d'ouverture modulables jour par jour</h4>
+              <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                <div>
+                  <label class="mb-1 block text-xs text-gray-400 font-semibold uppercase">Lundi</label>
+                  <input name="horaires_lundi" value="<?php echo e(config_value('horaires_lundi', '11:00 - 02:00')); ?>" class="w-full rounded-lg bg-[#121212] border border-white/10 px-3 py-2 text-white text-xs outline-none focus:border-amber-400">
+                </div>
+                <div>
+                  <label class="mb-1 block text-xs text-gray-400 font-semibold uppercase">Mardi</label>
+                  <input name="horaires_mardi" value="<?php echo e(config_value('horaires_mardi', '11:00 - 02:00')); ?>" class="w-full rounded-lg bg-[#121212] border border-white/10 px-3 py-2 text-white text-xs outline-none focus:border-amber-400">
+                </div>
+                <div>
+                  <label class="mb-1 block text-xs text-gray-400 font-semibold uppercase">Mercredi</label>
+                  <input name="horaires_mercredi" value="<?php echo e(config_value('horaires_mercredi', '11:00 - 02:00')); ?>" class="w-full rounded-lg bg-[#121212] border border-white/10 px-3 py-2 text-white text-xs outline-none focus:border-amber-400">
+                </div>
+                <div>
+                  <label class="mb-1 block text-xs text-gray-400 font-semibold uppercase">Jeudi</label>
+                  <input name="horaires_jeudi" value="<?php echo e(config_value('horaires_jeudi', '11:00 - 02:00')); ?>" class="w-full rounded-lg bg-[#121212] border border-white/10 px-3 py-2 text-white text-xs outline-none focus:border-amber-400">
+                </div>
+                <div>
+                  <label class="mb-1 block text-xs text-gray-400 font-semibold uppercase">Vendredi</label>
+                  <input name="horaires_vendredi" value="<?php echo e(config_value('horaires_vendredi', '11:00 - 05:00')); ?>" class="w-full rounded-lg bg-[#121212] border border-white/10 px-3 py-2 text-white text-xs outline-none focus:border-amber-400">
+                </div>
+                <div>
+                  <label class="mb-1 block text-xs text-gray-400 font-semibold uppercase">Samedi</label>
+                  <input name="horaires_samedi" value="<?php echo e(config_value('horaires_samedi', '11:00 - 05:00')); ?>" class="w-full rounded-lg bg-[#121212] border border-white/10 px-3 py-2 text-white text-xs outline-none focus:border-amber-400">
+                </div>
+                <div>
+                  <label class="mb-1 block text-xs text-gray-400 font-semibold uppercase">Dimanche</label>
+                  <input name="horaires_dimanche" value="<?php echo e(config_value('horaires_dimanche', '12:00 - 00:00')); ?>" class="w-full rounded-lg bg-[#121212] border border-white/10 px-3 py-2 text-white text-xs outline-none focus:border-amber-400">
+                </div>
+              </div>
             </div>
-            <div>
-              <label class="mb-2 block text-sm text-gray-300">Horaires weekend</label>
-              <input name="horaires_weekend" value="<?php echo e(config_value('horaires_weekend')); ?>" class="w-full rounded-lg bg-[#121212] border border-white/10 px-4 py-3 text-white outline-none focus:border-amber-400">
-            </div>
-            <div>
-              <label class="mb-2 block text-sm text-gray-300">Horaires dimanche</label>
-              <input name="horaires_dimanche" value="<?php echo e(config_value('horaires_dimanche')); ?>" class="w-full rounded-lg bg-[#121212] border border-white/10 px-4 py-3 text-white outline-none focus:border-amber-400">
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="mb-2 block text-sm text-gray-300">Début Happy Hour</label>
+                <input name="happy_hour_start" type="time" value="<?php echo e(config_value('happy_hour_start', '17:00')); ?>" class="w-full rounded-lg bg-[#121212] border border-white/10 px-4 py-3 text-white outline-none focus:border-amber-400">
+              </div>
+              <div>
+                <label class="mb-2 block text-sm text-gray-300">Fin Happy Hour</label>
+                <input name="happy_hour_end" type="time" value="<?php echo e(config_value('happy_hour_end', '20:00')); ?>" class="w-full rounded-lg bg-[#121212] border border-white/10 px-4 py-3 text-white outline-none focus:border-amber-400">
+              </div>
             </div>
             <button class="rounded-lg bg-amber-400 px-4 py-3 font-semibold text-black hover:bg-amber-300">Enregistrer les infos</button>
           </form>
@@ -1046,82 +1125,211 @@ $heroBgImage = config_value('hero_bg_image', '/assets/uploads/hero-bg.jpg');
       </section>
     <?php else: ?>
       <section class="space-y-6">
-        <div class="rounded-2xl border border-white/10 bg-[#1A1A1A] p-6 shadow-lg">
-          <h2 class="text-2xl font-display text-amber-300">Ajouter un produit</h2>
-          <form method="post" class="mt-6 grid gap-4 md:grid-cols-2">
+        <!-- Top Toolbar: Search, Category Filter, and Add Product Modal Trigger -->
+        <div class="rounded-2xl border border-white/10 bg-[#1A1A1A] p-5 shadow-lg flex flex-wrap items-center justify-between gap-4">
+          <div class="flex items-center gap-3 flex-1 min-w-[280px]">
+            <div class="relative flex-1">
+              <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">🔍</span>
+              <input type="text" id="carte-search" oninput="filterCarteAdmin()" placeholder="Rechercher une bière, un cocktail..." class="w-full rounded-xl bg-[#121212] border border-white/10 pl-9 pr-4 py-2.5 text-xs text-white placeholder-gray-500 outline-none focus:border-amber-400">
+            </div>
+            
+            <select id="carte-cat-filter" onchange="filterCarteAdmin()" class="rounded-xl bg-[#121212] border border-white/10 px-3 py-2.5 text-xs text-amber-300 font-semibold outline-none focus:border-amber-400">
+              <option value="ALL">🍺 Toutes les catégories</option>
+              <?php foreach ($categories as $catOpt): ?>
+                <option value="<?php echo e($catOpt); ?>"><?php echo e($catOpt); ?></option>
+              <?php endforeach; ?>
+            </select>
+          </div>
+
+          <button type="button" onclick="document.getElementById('modal-add-product').classList.remove('hidden')" class="rounded-xl bg-amber-400 px-5 py-2.5 text-xs font-bold text-black hover:bg-amber-300 transition-all shadow-[0_0_15px_rgba(212,175,55,0.2)] flex items-center gap-2">
+            <span>➕ Ajouter un produit</span>
+          </button>
+        </div>
+
+        <!-- Category Tabs Filter Pills (Super Clean UI) -->
+        <div class="flex items-center gap-2 overflow-x-auto pb-2 border-b border-white/10">
+          <button type="button" onclick="setCategoryFilter('ALL')" class="cat-pill-btn active px-4 py-2 rounded-xl text-xs font-bold transition-all bg-amber-400 text-black shadow-md" data-cat="ALL">
+            🍺 Tous les produits (<?php echo count($produits); ?>)
+          </button>
+          <?php foreach ($categories as $cName): 
+              $count = count($groupedAdmin[$cName] ?? []);
+          ?>
+            <button type="button" onclick="setCategoryFilter('<?php echo e($cName); ?>')" class="cat-pill-btn px-4 py-2 rounded-xl text-xs font-semibold text-gray-400 hover:text-white bg-white/5 border border-white/10 transition-all hover:bg-white/10" data-cat="<?php echo e($cName); ?>">
+              <?php echo $cName === 'Bières' ? '🍺' : ($cName === 'Cocktails' ? '🍸' : ($cName === 'Softs' ? '🥤' : ($cName === 'Vins' ? '🍷' : '🍔'))); ?> <?php echo e($cName); ?> (<?php echo $count; ?>)
+            </button>
+          <?php endforeach; ?>
+        </div>
+
+        <!-- Pro Data Table for Carte Management -->
+        <div class="rounded-2xl border border-white/10 bg-[#1A1A1A] shadow-2xl overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr class="bg-[#121212] border-b border-white/10 text-gray-400 font-semibold uppercase tracking-wider">
+                  <th class="py-3.5 px-4 w-32">Catégorie</th>
+                  <th class="py-3.5 px-4">Produit & Description</th>
+                  <th class="py-3.5 px-4 w-28 text-center">Prix Normal</th>
+                  <th class="py-3.5 px-4 w-28 text-center">Happy Hour ⭐</th>
+                  <th class="py-3.5 px-4 w-36 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-white/5" id="carte-table-body">
+                <?php foreach ($produits as $p): ?>
+                  <tr class="carte-row hover:bg-white/[0.02] transition-colors" data-name="<?php echo e(mb_strtolower($p['nom'])); ?>" data-category="<?php echo e($p['categorie']); ?>">
+                    <form method="post">
+                      <input type="hidden" name="csrf_token" value="<?php echo e($_SESSION['csrf_token']); ?>">
+                      <input type="hidden" name="action" value="update_product">
+                      <input type="hidden" name="id" value="<?php echo (int)$p['id']; ?>">
+
+                      <!-- Category -->
+                      <td class="py-3 px-4 align-top">
+                        <select name="categorie" class="rounded-lg bg-[#121212] border border-white/10 px-2.5 py-1.5 text-xs text-amber-300 font-semibold outline-none focus:border-amber-400 w-full">
+                          <?php foreach ($categories as $catOpt): ?>
+                            <option value="<?php echo e($catOpt); ?>" <?php echo $p['categorie'] === $catOpt ? 'selected' : ''; ?>><?php echo e($catOpt); ?></option>
+                          <?php endforeach; ?>
+                        </select>
+                      </td>
+
+                      <!-- Name & Description -->
+                      <td class="py-3 px-4 align-top space-y-1">
+                        <input name="nom" type="text" value="<?php echo e($p['nom']); ?>" required placeholder="Nom du produit..." class="w-full rounded-lg bg-[#121212] border border-white/10 px-3 py-1.5 text-xs text-white font-bold outline-none focus:border-amber-400">
+                        <input name="description" type="text" value="<?php echo e((string)($p['description'] ?? '')); ?>" placeholder="Description courte (ingrédients, notes...)" class="w-full rounded-lg bg-[#121212] border border-white/5 px-3 py-1 text-[11px] text-gray-400 outline-none focus:border-amber-400">
+                      </td>
+
+                      <!-- Price Normal -->
+                      <td class="py-3 px-4 align-top text-center">
+                        <div class="inline-flex items-center gap-1 bg-[#121212] border border-white/10 rounded-lg px-2 py-1">
+                          <input name="prix_normal" type="number" step="0.01" min="0" value="<?php echo e((string)$p['prix_normal']); ?>" required class="w-14 text-center bg-transparent text-xs text-white font-mono font-bold outline-none">
+                          <span class="text-xs text-gray-500 font-mono">€</span>
+                        </div>
+                      </td>
+
+                      <!-- Price Happy Hour -->
+                      <td class="py-3 px-4 align-top text-center">
+                        <div class="inline-flex items-center gap-1 bg-[#121212] border border-amber-400/20 rounded-lg px-2 py-1">
+                          <input name="prix_happy_hour" type="number" step="0.01" min="0" value="<?php echo $p['prix_happy_hour'] !== null ? e((string)$p['prix_happy_hour']) : ''; ?>" placeholder="---" class="w-14 text-center bg-transparent text-xs text-amber-300 font-mono font-bold outline-none">
+                          <span class="text-xs text-amber-400 font-mono">€</span>
+                        </div>
+                      </td>
+
+                      <!-- Save & Delete Actions -->
+                      <td class="py-3 px-4 align-top text-right">
+                        <div class="flex items-center justify-end gap-2">
+                          <button type="submit" title="Sauvegarder" class="rounded-lg bg-amber-400/20 border border-amber-400/40 px-3 py-1.5 text-xs font-bold text-amber-300 hover:bg-amber-400 hover:text-black transition-all flex items-center gap-1">
+                            <span>💾</span>
+                            <span>Sauver</span>
+                          </button>
+                    </form>
+                    <form method="post" onsubmit="return confirm('Supprimer définitivement <?php echo e(addslashes($p['nom'])); ?> ?');" class="inline">
+                      <input type="hidden" name="csrf_token" value="<?php echo e($_SESSION['csrf_token']); ?>">
+                      <input type="hidden" name="action" value="delete_product">
+                      <input type="hidden" name="id" value="<?php echo (int)$p['id']; ?>">
+                      <button type="submit" title="Supprimer" class="rounded-lg bg-red-500/10 border border-red-500/20 px-2.5 py-1.5 text-xs text-red-400 hover:bg-red-500 hover:text-white transition-all">
+                        🗑️
+                      </button>
+                    </form>
+                        </div>
+                      </td>
+                  </tr>
+                <?php endforeach; ?>
+
+                <?php if (empty($produits)): ?>
+                  <tr>
+                    <td colspan="5" class="text-center py-8 text-gray-500">Aucun produit configuré dans la carte.</td>
+                  </tr>
+                <?php endif; ?>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- Modal Ajouter un produit (Évite d'encombrer la page) -->
+      <div id="modal-add-product" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm hidden">
+        <div class="w-full max-w-lg rounded-2xl bg-[#1A1A1A] border border-white/10 shadow-2xl p-6 relative">
+          <button type="button" onclick="document.getElementById('modal-add-product').classList.add('hidden')" class="absolute top-4 right-4 text-gray-400 hover:text-white text-xl">&times;</button>
+          
+          <h3 class="text-2xl font-display text-amber-300 border-b border-white/10 pb-3 mb-6">➕ Ajouter un produit à la carte</h3>
+          
+          <form method="post" class="space-y-4">
             <input type="hidden" name="csrf_token" value="<?php echo e($_SESSION['csrf_token']); ?>">
             <input type="hidden" name="action" value="add_product">
+            
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs text-gray-400 mb-1 font-semibold uppercase">Catégorie</label>
+                <select name="categorie" required class="w-full rounded-lg bg-[#121212] border border-white/10 px-3 py-2 text-white text-xs outline-none focus:border-amber-400">
+                  <?php foreach ($categories as $category): ?>
+                    <option value="<?php echo e($category); ?>"><?php echo e($category); ?></option>
+                  <?php endforeach; ?>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs text-gray-400 mb-1 font-semibold uppercase">Nom du produit</label>
+                <input name="nom" type="text" placeholder="ex: Guiness, Mojito..." required class="w-full rounded-lg bg-[#121212] border border-white/10 px-3 py-2 text-white text-xs outline-none focus:border-amber-400">
+              </div>
+            </div>
+
             <div>
-              <label class="mb-2 block text-sm text-gray-300">Catégorie</label>
-              <select name="categorie" required class="w-full rounded-lg bg-[#121212] border border-white/10 px-4 py-3 text-white outline-none focus:border-amber-400">
-                <?php foreach ($categories as $category): ?>
-                  <option value="<?php echo e($category); ?>"><?php echo e($category); ?></option>
-                <?php endforeach; ?>
-              </select>
+              <label class="block text-xs text-gray-400 mb-1 font-semibold uppercase">Description (optionnel)</label>
+              <input name="description" type="text" placeholder="ex: Notes d'agrumes, fraîche..." class="w-full rounded-lg bg-[#121212] border border-white/10 px-3 py-2 text-white text-xs outline-none focus:border-amber-400">
             </div>
-            <div>
-              <label class="mb-2 block text-sm text-gray-300">Nom</label>
-              <input name="nom" required class="w-full rounded-lg bg-[#121212] border border-white/10 px-4 py-3 text-white outline-none focus:border-amber-400">
+
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs text-gray-400 mb-1 font-semibold uppercase">Prix Normal (€)</label>
+                <input name="prix_normal" type="number" step="0.01" min="0" placeholder="ex: 7.50" required class="w-full rounded-lg bg-[#121212] border border-white/10 px-3 py-2 text-white text-xs outline-none focus:border-amber-400">
+              </div>
+              <div>
+                <label class="block text-xs text-gray-400 mb-1 font-semibold uppercase">Prix Happy Hour (€ - optionnel)</label>
+                <input name="prix_happy_hour" type="number" step="0.01" min="0" placeholder="ex: 5.50" class="w-full rounded-lg bg-[#121212] border border-white/10 px-3 py-2 text-white text-xs outline-none focus:border-amber-400">
+              </div>
             </div>
-            <div class="md:col-span-2">
-              <label class="mb-2 block text-sm text-gray-300">Description</label>
-              <input name="description" class="w-full rounded-lg bg-[#121212] border border-white/10 px-4 py-3 text-white outline-none focus:border-amber-400">
-            </div>
-            <div>
-              <label class="mb-2 block text-sm text-gray-300">Prix normal</label>
-              <input name="prix_normal" type="number" step="0.01" min="0" required class="w-full rounded-lg bg-[#121212] border border-white/10 px-4 py-3 text-white outline-none focus:border-amber-400">
-            </div>
-            <div>
-              <label class="mb-2 block text-sm text-gray-300">Prix Happy Hour</label>
-              <input name="prix_happy_hour" type="number" step="0.01" min="0" class="w-full rounded-lg bg-[#121212] border border-white/10 px-4 py-3 text-white outline-none focus:border-amber-400">
-            </div>
-            <div class="md:col-span-2">
-              <button class="rounded-lg bg-amber-400 px-4 py-3 font-semibold text-black hover:bg-amber-300">Ajouter le produit</button>
+
+            <div class="pt-4 flex justify-end gap-3">
+              <button type="button" onclick="document.getElementById('modal-add-product').classList.add('hidden')" class="px-4 py-2 text-xs text-gray-400 hover:text-white">Annuler</button>
+              <button type="submit" class="rounded-xl bg-amber-400 px-5 py-2.5 text-xs font-bold text-black hover:bg-amber-300 transition-all">Ajouter le produit</button>
             </div>
           </form>
         </div>
+      </div>
 
-        <div class="rounded-2xl border border-white/10 bg-[#1A1A1A] p-6 shadow-lg overflow-x-auto">
-          <h2 class="text-2xl font-display text-amber-300">Carte actuelle</h2>
-          <table class="mt-6 min-w-full text-left text-sm">
-            <thead class="text-gray-400">
-              <tr class="border-b border-white/10">
-                <th class="py-3 pr-4">Catégorie</th>
-                <th class="py-3 pr-4">Produit</th>
-                <th class="py-3 pr-4">Description</th>
-                <th class="py-3 pr-4">Prix normal</th>
-                <th class="py-3 pr-4">Happy Hour</th>
-                <th class="py-3 pr-4">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              <?php foreach ($produits as $produit): ?>
-                <tr class="border-b border-white/5 align-top">
-                  <td class="py-4 pr-4 text-gray-300"><?php echo e($produit['categorie']); ?></td>
-                  <td class="py-4 pr-4 text-white"><?php echo e($produit['nom']); ?></td>
-                  <td class="py-4 pr-4 text-gray-400 max-w-xs"><?php echo e((string)($produit['description'] ?? '')); ?></td>
-                  <td class="py-4 pr-4">
-                    <form method="post" class="flex items-center gap-2">
-                      <input type="hidden" name="csrf_token" value="<?php echo e($_SESSION['csrf_token']); ?>">
-                      <input type="hidden" name="action" value="update_product">
-                      <input type="hidden" name="id" value="<?php echo (int)$produit['id']; ?>">
-                      <input name="prix_normal" type="number" step="0.01" min="0" value="<?php echo e((string)$produit['prix_normal']); ?>" class="w-24 rounded-lg bg-[#121212] border border-white/10 px-3 py-2 text-white">
-                  </td>
-                  <td class="py-4 pr-4">
-                      <input name="prix_happy_hour" type="number" step="0.01" min="0" value="<?php echo $produit['prix_happy_hour'] !== null ? e((string)$produit['prix_happy_hour']) : ''; ?>" class="w-24 rounded-lg bg-[#121212] border border-white/10 px-3 py-2 text-white">
-                  </td>
-                  <td class="py-4 pr-4">
-                      <button class="rounded-lg border border-amber-400/30 px-3 py-2 text-amber-300 hover:bg-amber-400 hover:text-black">Sauver</button>
-                    </form>
-                  </td>
-                </tr>
-              <?php endforeach; ?>
-              <?php if (empty($produits)): ?>
-                <tr><td colspan="6" class="py-6 text-gray-400">Aucun produit en base.</td></tr>
-              <?php endif; ?>
-            </tbody>
-          </table>
-        </div>
+      <script>
+      let currentSelectedCat = 'ALL';
+
+      function setCategoryFilter(cat) {
+        currentSelectedCat = cat;
+        document.querySelectorAll('.cat-pill-btn').forEach(btn => {
+          if (btn.getAttribute('data-cat') === cat) {
+            btn.className = 'cat-pill-btn active px-4 py-2 rounded-xl text-xs font-bold transition-all bg-amber-400 text-black shadow-md';
+          } else {
+            btn.className = 'cat-pill-btn px-4 py-2 rounded-xl text-xs font-semibold text-gray-400 hover:text-white bg-white/5 border border-white/10 transition-all hover:bg-white/10';
+          }
+        });
+        filterCarteAdmin();
+      }
+
+      function filterCarteAdmin() {
+        const query = document.getElementById('carte-search').value.toLowerCase().trim();
+        const selectedDropdown = document.getElementById('carte-cat-filter').value;
+        const activeCat = selectedDropdown !== 'ALL' ? selectedDropdown : currentSelectedCat;
+        const rows = document.querySelectorAll('.carte-row');
+
+        rows.forEach(row => {
+          const rowName = row.getAttribute('data-name');
+          const rowCat = row.getAttribute('data-category');
+
+          const matchSearch = query === '' || rowName.includes(query);
+          const matchCat = activeCat === 'ALL' || rowCat === activeCat;
+
+          if (matchSearch && matchCat) {
+            row.style.display = '';
+          } else {
+            row.style.display = 'none';
+          }
+        });
+      }
+      </script>
       </section>
     <?php endif; ?>
   </main>

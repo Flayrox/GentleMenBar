@@ -19,6 +19,9 @@ RewriteCond %{THE_REQUEST} \s/+admin(?:\.php)?[\s?] [NC]
 RewriteRule ^(?:admin(?:\.php)?)$ /le-comptoir [L,R=301,NC]
 RewriteRule ^le-comptoir/?$ /admin.php [L,QSA,NC]
 
+# Sitemap XML dynamique
+RewriteRule ^sitemap\.xml$ /sitemap.php [L,NC]
+
 # Optionnel : rediriger index.php vers /
 RewriteCond %{THE_REQUEST} /index\.php [NC]
 RewriteRule ^index\.php$ / [L,R=301]

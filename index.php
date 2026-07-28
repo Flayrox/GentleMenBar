@@ -5,20 +5,15 @@ $page_title = config_value('site_name', 'Le Gentleman Pub') . ' - ' . config_val
 $meta_description = config_value('hero_subtitle', 'Pintes fraîches, sports en direct et soirées au cœur de Saint-Germain.');
 require __DIR__ . '/includes/header.php';
 
-// Récupérer le match mis en avant
+// Récupérer le match mis en avant (exclusivement mis manuellement ou s'il est dans les 3 prochains jours max)
 $stmtFeatured = $pdo->query('SELECT * FROM matchs WHERE is_active = 1 AND is_featured = 1 LIMIT 1');
 $featuredMatch = $stmtFeatured->fetch();
 
 if (!$featuredMatch) {
-    // Fallback automatique sur le prochain match à venir dans les 15 prochains jours qui appartient à une compétition autorisée
-    $autoFeatJson = config_value('auto_feature_competitions', '["Coupe du Monde"]');
-    $autoFeatList = json_decode($autoFeatJson, true) ?: [];
-    if (!empty($autoFeatList)) {
-        $inPlaceholders = implode(',', array_fill(0, count($autoFeatList), '?'));
-        $stmtFeaturedAuto = $pdo->prepare("SELECT * FROM matchs WHERE is_active = 1 AND date_match >= NOW() AND date_match <= DATE_ADD(NOW(), INTERVAL 15 DAY) AND competition IN ($inPlaceholders) ORDER BY date_match ASC LIMIT 1");
-        $stmtFeaturedAuto->execute($autoFeatList);
-        $featuredMatch = $stmtFeaturedAuto->fetch() ?: null;
-    }
+    // Si aucun match n'est explicitement mis à l'affiche par l'admin,
+    // on ne prend en fallback automatique QUE un match qui a lieu dans les 3 prochains jours MAX.
+    $stmtFeaturedAuto = $pdo->query("SELECT * FROM matchs WHERE is_active = 1 AND date_match >= NOW() AND date_match <= DATE_ADD(NOW(), INTERVAL 3 DAY) ORDER BY date_match ASC LIMIT 1");
+    $featuredMatch = $stmtFeaturedAuto->fetch() ?: null;
 }
 
 // Récupérer les prochains matchs actifs (exclure le match à l'affiche de la liste des petits blocs s'il est déjà en vedette) dans les 15 prochains jours
@@ -48,8 +43,17 @@ $ctaSecondary = config_value('hero_cta_secondary', 'Découvrir la carte');
 $ctaPrimaryLink = "document.getElementById('matchs').scrollIntoView({behavior:'smooth'})";
 
 if ($featuredMatch) {
-    $heroTitle = "CE SOIR AU BAR\\n" . $featuredMatch['equipe_1'] . " vs " . $featuredMatch['equipe_2'];
-    $heroSubtitle = "Venez vivre " . $featuredMatch['equipe_1'] . " contre " . $featuredMatch['equipe_2'] . " en direct (" . ($featuredMatch['competition'] ?: 'Événement') . ") au Gentleman Pub !";
+    $matchDateObj = new DateTimeImmutable($featuredMatch['date_match']);
+    $todayStr = (new DateTimeImmutable('today'))->format('Y-m-d');
+    $isMatchToday = ($matchDateObj->format('Y-m-d') === $todayStr);
+
+    if ($isMatchToday) {
+        $heroTitle = "CE SOIR AU BAR\\n" . $featuredMatch['equipe_1'] . " vs " . $featuredMatch['equipe_2'];
+        $heroSubtitle = "Venez vivre " . $featuredMatch['equipe_1'] . " contre " . $featuredMatch['equipe_2'] . " en direct ce soir à " . $matchDateObj->format('H:i') . " (" . ($featuredMatch['competition'] ?: 'Événement') . ") au Gentleman Pub !";
+    } else {
+        $heroTitle = "À L'AFFICHE\\n" . $featuredMatch['equipe_1'] . " vs " . $featuredMatch['equipe_2'];
+        $heroSubtitle = "Prochain grand rendez-vous : " . $featuredMatch['equipe_1'] . " contre " . $featuredMatch['equipe_2'] . " le " . $matchDateObj->format('d/m \à H:i') . " (" . ($featuredMatch['competition'] ?: 'Événement') . ") au Gentleman Pub !";
+    }
     $ctaPrimary = "Voir les détails du match";
     $ctaPrimaryLink = "window.location.href='/matchs/" . $featuredMatch['slug'] . "'";
 }
@@ -106,47 +110,64 @@ if ($featuredMatch) {
             <!-- Live Matches -->
             <div>
                 <h4 class="font-headline-md text-2xl text-primary-container mb-6 uppercase tracking-wide">Matchs à venir</h4>
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-lg">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                     <?php foreach ($nextMatchs as $m):
                         $d = new DateTimeImmutable($m['date_match'], new DateTimeZone('Europe/Paris'));
                         $badge = get_match_status_badge($m);
                         $score = format_score($m['score_equipe_1'] ?? null, $m['score_equipe_2'] ?? null);
                         $isLive = is_match_live($m);
+                        $matchUrl = '/match.php?slug=' . urlencode($m['slug']);
                     ?>
-                        <a href="/matchs/<?php echo e($m['slug']); ?>" class="relative py-md border-b border-primary/20 group cursor-pointer transition-all duration-300 hover:border-primary/50">
-                            <div class="flex justify-between items-start mb-md relative z-10">
+                        <a href="<?php echo e($matchUrl); ?>" class="relative group block rounded-2xl bg-[#121416]/90 border border-amber-400/20 p-6 backdrop-blur-md hover:border-amber-400/60 hover:bg-[#16191C] transition-all duration-300 shadow-[0_10px_30px_rgba(0,0,0,0.5)] hover:shadow-[0_15px_35px_rgba(212,175,55,0.1)]">
+                            <!-- Subtle gold top accent bar -->
+                            <div class="absolute top-0 left-8 right-8 h-[2px] bg-gradient-to-r from-transparent via-amber-400/40 to-transparent group-hover:via-amber-400 transition-all duration-300"></div>
+
+                            <!-- Header: Status Badge & Competition -->
+                            <div class="flex justify-between items-center mb-5 text-[11px] font-bold tracking-[0.15em] uppercase border-b border-white/5 pb-3.5">
                                 <?php if ($isLive): ?>
-                                    <span class="inline-flex items-center gap-2">
-                                        <span class="w-2.5 h-2.5 rounded-full bg-status-live animate-pulse"></span>
-                                        <span class="font-label-caps text-label-caps text-status-live"><?php echo e($badge); ?></span>
+                                    <span class="inline-flex items-center gap-2 text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/30">
+                                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                                        <?php echo e($badge); ?>
                                     </span>
                                 <?php else: ?>
-                                    <span class="font-label-caps text-label-caps text-primary/60 tracking-widest uppercase"><?php echo e($badge); ?></span>
+                                    <span class="text-amber-400/90 bg-amber-400/10 px-3 py-1 rounded-full border border-amber-400/20"><?php echo e($badge); ?></span>
                                 <?php endif; ?>
-                                <span class="font-label-caps text-label-caps text-primary/60 tracking-widest uppercase"><?php echo e($m['competition'] ?: 'Sport'); ?></span>
+                                <span class="text-gray-400 tracking-widest text-[10px] uppercase font-semibold"><?php echo e($m['competition'] ?: 'Sport'); ?></span>
                             </div>
-                            <div class="flex-1 flex flex-col justify-center gap-sm relative z-10 mt-auto">
-                                <div class="flex justify-between items-center pb-sm">
-                                    <span class="font-display-lg text-2xl md:text-3xl text-on-surface flex items-center gap-3">
-                                        <?php echo render_team_logo_html($m['equipe_1'], $m['image_path'], 'h-8 w-8 object-contain drop-shadow-[0_0_4px_rgba(255,255,255,0.15)] bg-black/10 p-0.5 rounded border border-white/5 flex-shrink-0', mb_substr($m['equipe_1'], 0, 1)); ?>
-                                        <span><?php echo e($m['equipe_1']); ?></span>
-                                    </span>
+
+                            <!-- Teams & Scores -->
+                            <div class="space-y-4 my-3">
+                                <div class="flex justify-between items-center">
+                                    <div class="flex items-center gap-3.5 min-w-0">
+                                        <?php echo render_team_logo_html($m['equipe_1'], $m['image_path'], 'h-10 w-10 object-contain bg-black/40 p-1 rounded-xl border border-white/10 flex-shrink-0 group-hover:border-amber-400/30 transition-colors', mb_substr($m['equipe_1'], 0, 1)); ?>
+                                        <span class="font-display text-xl text-white font-bold tracking-wide truncate group-hover:text-amber-300 transition-colors"><?php echo e($m['equipe_1']); ?></span>
+                                    </div>
                                     <?php if ($score): ?>
-                                        <span class="font-display-lg text-3xl md:text-4xl text-primary-container neon-text-gold"><?php echo e(explode(' - ', $score)[0]); ?></span>
+                                        <span class="font-display text-2xl text-amber-400 font-bold ml-2"><?php echo e(explode(' - ', $score)[0]); ?></span>
                                     <?php endif; ?>
                                 </div>
-                                <div class="flex justify-between items-center pt-xs">
-                                    <span class="font-display-lg text-2xl md:text-3xl text-on-surface/80 flex items-center gap-3">
-                                        <?php echo render_team_logo_html($m['equipe_2'], $m['image_path_away'], 'h-8 w-8 object-contain drop-shadow-[0_0_4px_rgba(255,255,255,0.15)] bg-black/10 p-0.5 rounded border border-white/5 flex-shrink-0', mb_substr($m['equipe_2'], 0, 1)); ?>
-                                        <span><?php echo e($m['equipe_2']); ?></span>
-                                    </span>
+                                <div class="flex justify-between items-center">
+                                    <div class="flex items-center gap-3.5 min-w-0">
+                                        <?php echo render_team_logo_html($m['equipe_2'], $m['image_path_away'], 'h-10 w-10 object-contain bg-black/40 p-1 rounded-xl border border-white/10 flex-shrink-0 group-hover:border-amber-400/30 transition-colors', mb_substr($m['equipe_2'], 0, 1)); ?>
+                                        <span class="font-display text-xl text-white/90 font-bold tracking-wide truncate group-hover:text-amber-300 transition-colors"><?php echo e($m['equipe_2']); ?></span>
+                                    </div>
                                     <?php if ($score): ?>
-                                        <span class="font-display-lg text-3xl md:text-4xl text-primary-container neon-text-gold"><?php echo e(explode(' - ', $score)[1]); ?></span>
+                                        <span class="font-display text-2xl text-amber-400 font-bold ml-2"><?php echo e(explode(' - ', $score)[1]); ?></span>
                                     <?php endif; ?>
                                 </div>
                             </div>
-                            <div class="absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity -z-10"></div>
-                            <div class="text-xs text-on-surface-variant mt-3"><?php echo e($d->format('d/m/Y H:i')); ?></div>
+
+                            <!-- Footer: Date & Link -->
+                            <div class="mt-5 pt-3.5 border-t border-white/5 flex items-center justify-between text-xs text-gray-400">
+                                <span class="flex items-center gap-1.5 text-gray-300 font-medium">
+                                    <span>🗓️</span>
+                                    <span><?php echo e($d->format('d/m/Y \à H:i')); ?></span>
+                                </span>
+                                <span class="text-amber-400 group-hover:translate-x-1.5 transition-transform duration-300 font-semibold tracking-wider flex items-center gap-1">
+                                    <span>Voir le match</span>
+                                    <span>→</span>
+                                </span>
+                            </div>
                         </a>
                     <?php endforeach; ?>
                 </div>
@@ -171,7 +192,25 @@ if ($featuredMatch) {
                     <h2 class="font-display-lg text-4xl md:text-5xl text-primary tracking-widest uppercase">
                         <?php echo e(config_value('section_carte_title', 'La Carte')); ?>
                     </h2>
-                    <div style="width: 100%; height: 1px; background: linear-gradient(90deg, rgba(212,175,55,0) 0%, rgba(212,175,55,0.6) 50%, rgba(212,175,55,0) 100%); margin: 32px 0; position: relative;">
+                    
+                    <?php 
+                    $isHH = is_happy_hour_now();
+                    $hhStart = config_value('happy_hour_start', '17:00');
+                    $hhEnd = config_value('happy_hour_end', '20:00');
+                    ?>
+                    <!-- Live Dynamic Happy Hour Banner -->
+                    <div class="mt-6 inline-flex items-center gap-2.5 px-5 py-2.5 rounded-full border transition-all duration-300 backdrop-blur-md shadow-lg <?php echo $isHH ? 'bg-amber-400/10 border-amber-400/40 text-amber-300 shadow-[0_0_20px_rgba(212,175,55,0.15)]' : 'bg-white/5 border-white/10 text-gray-300'; ?>">
+                        <span class="w-2 h-2 rounded-full <?php echo $isHH ? 'bg-amber-400 animate-ping' : 'bg-gray-500'; ?>"></span>
+                        <span class="text-xs md:text-sm font-semibold tracking-wide">
+                            <?php if ($isHH): ?>
+                                🍻 <strong class="text-amber-400">HAPPY HOUR EN COURS</strong> (<?php echo e($hhStart); ?> - <?php echo e($hhEnd); ?>) — Tarifs réduits actifs sur les boissons étoilées ⭐
+                            <?php else: ?>
+                                🕒 <strong>HAPPY HOUR TOUS LES JOURS (<?php echo e($hhStart); ?> - <?php echo e($hhEnd); ?>)</strong> — Profitez de tarifs réduits sur nos boissons sélectionnées ⭐
+                            <?php endif; ?>
+                        </span>
+                    </div>
+
+                    <div style="width: 100%; height: 1px; background: linear-gradient(90deg, rgba(212,175,55,0) 0%, rgba(212,175,55,0.6) 50%, rgba(212,175,55,0) 100%); margin: 24px 0; position: relative;">
                         <div style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); color: #d4af37; font-size: 14px; padding: 0 12px; background-color: transparent;">❖</div>
                     </div>
                     <p class="font-body-muted text-lg text-on-surface-variant max-w-2xl mx-auto italic">
@@ -199,16 +238,23 @@ if ($featuredMatch) {
                                             <h4 class="font-headline-md text-xl text-on-surface group-hover:text-primary transition-colors tracking-wide flex items-center gap-2">
                                                 <?php echo e($item['nom']); ?>
                                                 <?php if ($ph): ?>
-                                                    <span class="material-symbols-outlined text-[16px] text-primary" style="font-variation-settings: 'FILL' 1;">star</span>
+                                                    <span class="material-symbols-outlined text-[16px] text-amber-400/80" style="font-variation-settings: 'FILL' 1;" title="Tarif Happy Hour (17h-20h)">star</span>
                                                 <?php endif; ?>
                                             </h4>
                                             <div style="flex-grow: 1; height: 1px; background: linear-gradient(90deg, rgba(212,175,55,0) 0%, rgba(212,175,55,0.4) 50%, rgba(212,175,55,0) 100%); margin: 0 16px;"></div>
                                             <div class="flex items-center gap-3">
                                                 <?php if ($priceHH): ?>
-                                                    <span class="font-body-muted text-body-muted text-on-surface-variant/60 line-through">€<?php echo e($price); ?></span>
-                                                    <span class="font-headline-md text-xl text-primary-container drop-shadow-[0_0_8px_rgba(212,175,55,0.4)]">€<?php echo e($priceHH); ?></span>
+                                                    <?php if ($isHH): ?>
+                                                        <!-- Pendant l'Happy Hour : Le prix normal est barré, le prix HH est lumineux -->
+                                                        <span class="font-body-muted text-body-muted text-on-surface-variant/50 line-through text-sm">€<?php echo e($price); ?></span>
+                                                        <span class="font-headline-md text-xl text-amber-400 font-bold drop-shadow-[0_0_10px_rgba(212,175,55,0.5)]">€<?php echo e($priceHH); ?></span>
+                                                    <?php else: ?>
+                                                        <!-- Hors Happy Hour : Le prix normal est principal, le prix HH est discret/atténué -->
+                                                        <span class="font-headline-md text-xl text-primary-container font-bold">€<?php echo e($price); ?></span>
+                                                        <span class="text-xs text-amber-400/50 bg-amber-400/5 px-2 py-0.5 rounded border border-amber-400/10" title="Prix disponible pendant l'Happy Hour (17h-20h)">HH: €<?php echo e($priceHH); ?></span>
+                                                    <?php endif; ?>
                                                 <?php else: ?>
-                                                    <span class="font-headline-md text-xl text-primary-container drop-shadow-[0_0_8px_rgba(212,175,55,0.3)]">€<?php echo e($price); ?></span>
+                                                    <span class="font-headline-md text-xl text-primary-container font-bold">€<?php echo e($price); ?></span>
                                                 <?php endif; ?>
                                             </div>
                                         </div>

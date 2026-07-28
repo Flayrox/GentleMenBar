@@ -21,7 +21,7 @@ $options = [
     PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
     PDO::ATTR_EMULATE_PREPARES => false,
-    PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci",
+    (defined('Pdo\Mysql::ATTR_INIT_COMMAND') ? Pdo\Mysql::ATTR_INIT_COMMAND : PDO::MYSQL_ATTR_INIT_COMMAND) => "SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci",
 ];
 
 try {
@@ -215,6 +215,20 @@ function apply_slug_synonyms(string $value): string
     return $normalized;
 }
 
+/**
+ * Détermine si le bar est actuellement en plage d'Happy Hour selon les horaires configurés en BDD
+ */
+function is_happy_hour_now(): bool
+{
+    $startStr = config_value('happy_hour_start', '17:00');
+    $endStr = config_value('happy_hour_end', '20:00');
+
+    $now = new DateTimeImmutable('now', new DateTimeZone('Europe/Paris'));
+    $currentTime = $now->format('H:i');
+
+    return ($currentTime >= $startStr && $currentTime < $endStr);
+}
+
 function sanitize_custom_slug(string $slug): string
 {
     return slugify($slug);
@@ -268,18 +282,17 @@ function get_team_logo(string $teamName): string
 {
     $team = strtolower(trim($teamName));
     $logos = [
-        'psg' => 'https://upload.wikimedia.org/wikipedia/fr/8/86/Paris_Saint-Germain_Logo.svg',
-        'paris sg' => 'https://upload.wikimedia.org/wikipedia/fr/8/86/Paris_Saint-Germain_Logo.svg',
-        'paris saint-germain' => 'https://upload.wikimedia.org/wikipedia/fr/8/86/Paris_Saint-Germain_Logo.svg',
-        'marseille' => 'https://upload.wikimedia.org/wikipedia/fr/4/43/Logo_Olympique_de_Marseille.svg',
-        'om' => 'https://upload.wikimedia.org/wikipedia/fr/4/43/Logo_Olympique_de_Marseille.svg',
-        'olympique de marseille' => 'https://upload.wikimedia.org/wikipedia/fr/4/43/Logo_Olympique_de_Marseille.svg',
-        'france' => 'https://upload.wikimedia.org/wikipedia/commons/c/c3/Flag_of_France.svg',
-        'real madrid' => 'https://upload.wikimedia.org/wikipedia/fr/c/c7/Logo_Real_Madrid.svg',
-        'barcelona' => 'https://upload.wikimedia.org/wikipedia/fr/a/a1/Logo_FC_Barcelona.svg',
-        'barca' => 'https://upload.wikimedia.org/wikipedia/fr/a/a1/Logo_FC_Barcelona.svg',
-        'fc barcelone' => 'https://upload.wikimedia.org/wikipedia/fr/a/a1/Logo_FC_Barcelona.svg',
-        'stade toulousain' => 'https://upload.wikimedia.org/wikipedia/fr/1/12/Logo_Stade_Toulousain_2024.svg',
+        'psg' => 'https://www.thesportsdb.com/images/media/team/badge/5d4vpt1534084224.png',
+        'paris sg' => 'https://www.thesportsdb.com/images/media/team/badge/5d4vpt1534084224.png',
+        'paris saint-germain' => 'https://www.thesportsdb.com/images/media/team/badge/5d4vpt1534084224.png',
+        'marseille' => 'https://www.thesportsdb.com/images/media/team/badge/b72d2l1534084323.png',
+        'om' => 'https://www.thesportsdb.com/images/media/team/badge/b72d2l1534084323.png',
+        'olympique de marseille' => 'https://www.thesportsdb.com/images/media/team/badge/b72d2l1534084323.png',
+        'real madrid' => 'https://www.thesportsdb.com/images/media/team/badge/v2vd7t1534084391.png',
+        'barcelona' => 'https://www.thesportsdb.com/images/media/team/badge/03v2yd1534084279.png',
+        'barca' => 'https://www.thesportsdb.com/images/media/team/badge/03v2yd1534084279.png',
+        'fc barcelone' => 'https://www.thesportsdb.com/images/media/team/badge/03v2yd1534084279.png',
+        'stade toulousain' => 'https://www.thesportsdb.com/images/media/team/badge/6t292n1549727402.png',
         'toulouse' => 'https://upload.wikimedia.org/wikipedia/fr/1/12/Logo_Stade_Toulousain_2024.svg',
         'suisse' => 'https://upload.wikimedia.org/wikipedia/commons/f/f3/Flag_of_Switzerland.svg',
         'switzerland' => 'https://upload.wikimedia.org/wikipedia/commons/f/f3/Flag_of_Switzerland.svg',
@@ -400,11 +413,11 @@ function render_team_logo_html(string $teamName, ?string $dbLogoPath, string $im
         return '<div class="' . $imgClass . ' flex items-center justify-center text-lg select-none" title="' . $escapedTeam . '">' . $emoji . '</div>';
     }
     
-    // Fallback avec initiales et style approprié selon la taille
+    // Fallback avec initiales et style élégant assorti au thème du pub
     $isLarge = str_contains($imgClass, 'h-20') || str_contains($imgClass, 'h-28');
     $styleClass = $isLarge 
-        ? 'rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-3xl text-gray-500 font-bold'
-        : 'rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-[10px] text-gray-500 font-semibold';
+        ? 'rounded-2xl bg-[#1A1A1A] border border-amber-400/30 text-amber-400 shadow-[0_0_15px_rgba(212,175,55,0.15)] flex items-center justify-center text-3xl font-display font-bold'
+        : 'rounded-xl bg-[#181B1D] border border-amber-400/20 text-amber-300 flex items-center justify-center text-xs font-display font-bold shadow-sm';
         
     return '<div class="' . $imgClass . ' ' . $styleClass . ' select-none" title="' . $escapedTeam . '">' . e($textFallback) . '</div>';
 }

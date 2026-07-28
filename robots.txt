@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /admin.php
+Disallow: /config/
+Disallow: /api/
+
+Sitemap: https://legentlemanpub.fr/sitemap.xml

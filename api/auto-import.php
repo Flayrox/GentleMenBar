@@ -9,6 +9,10 @@ error_reporting(E_ALL);
 // Charge la configuration et la connexion PDO
 require_once __DIR__ . '/../config/db.php';
 
+// Augmenter le temps d'exécution maximal pour l'analyse iCal (120 secondes max)
+@set_time_limit(120);
+@ini_set('max_execution_time', '120');
+
 // Fuseau horaire de référence
 date_default_timezone_set('Europe/Paris');
 
@@ -30,30 +34,58 @@ $todayStart = new DateTime('today', new DateTimeZone('Europe/Paris'));
 $maxLimit = (new DateTime('today', new DateTimeZone('Europe/Paris')))->modify('+15 days');
 $maxLimit->setTime(23, 59, 59);
 
-// Mots-clés pour filtrer les affiches importantes
+// Récupération des mots-clés configurables depuis la BDD (avec fallback)
+$dbKeywordsRaw = config_value('auto_import_keywords', '');
+if (!empty($dbKeywordsRaw)) {
+    $keywords = array_filter(array_map('trim', explode(',', $dbKeywordsRaw)));
+} else {
 $keywords = [
-    'PSG', 'Paris SG', 'Marseille', 'OM', 'Lyon', 'Lens', 'Toulouse', 'Stade Toulousain', 
-    'France', 'Real Madrid', 'Barcelona', 'Bayern', 'Arsenal', 'Manchester', 'Liverpool', 
-    'Juventus', 'Milan', 'Chelsea', 'City', 'Inter', 'Bordeaux', 'La Rochelle'
+    // Ligue 1 & Clubs Français Majeurs
+    'PSG', 'Paris SG', 'Paris Saint-Germain', 'Marseille', 'OM', 'Olympique de Marseille', 
+    'Lyon', 'OL', 'Olympique Lyonnais', 'Lens', 'RCL', 'Lille', 'LOSC', 'Monaco', 'ASM', 
+    'Rennes', 'Stade Rennais', 'Nice', 'OGC Nice', 'Strasbourg', 'Toulouse', 'FC Nantes', 'Saint-Étienne', 'ASSE',
+    
+    // Équipes Nationales Majeures (Foot & Rugby)
+    'France', 'XV de France', 'Bleus', 'Angleterre', 'England', 'Irlande', 'Ireland', 
+    'All Blacks', 'Nouvelle-Zélande', 'Afrique du Sud', 'Springboks', 'Espagne', 'Spain', 
+    'Allemagne', 'Germany', 'Italie', 'Italy', 'Brésil', 'Brazil', 'Argentine', 'Argentina',
+    
+    // Top Clubs Européens (Football)
+    'Real Madrid', 'Real', 'Barcelona', 'Barça', 'Barcelone', 'Atletico', 'Bayern', 'Bayern Munich', 
+    'Dortmund', 'BVB', 'Arsenal', 'Manchester United', 'Man United', 'Manchester City', 'Man City', 
+    'Liverpool', 'Chelsea', 'Tottenham', 'Juventus', 'Juve', 'AC Milan', 'Milan', 'Inter', 'Inter Milan', 'Napoli',
+    
+    // Rugby (Top 14 & Champions Cup)
+    'Stade Toulousain', 'Toulouse Rugby', 'La Rochelle', 'Stade Rochelais', 'Racing 92', 
+    'Stade Français', 'UBB', 'Bordeaux-Bègles', 'Toulon', 'RCT', 'Clermont', 'ASM Clermont'
 ];
+}
 
-// Liste des calendriers iCal (.ics) à importer (uniquement football)
+// Liste des calendriers iCal (.ics) à importer (Football & Rugby)
 $calendars = [
-    'Coupe du Monde' => 'https://ics.fixtur.es/v2/league/fifa-world-cup-2026.ics',
-    'Ligue 1' => 'https://ics.fixtur.es/v2/league/ligue-1.ics',
-    'Champions League' => 'https://ics.fixtur.es/v2/league/champions-league.ics',
-    'Europa League' => 'https://ics.fixtur.es/v2/league/europa-league.ics',
-    'Premier League' => 'https://ics.fixtur.es/v2/league/premier-league.ics',
-    'La Liga' => 'https://ics.fixtur.es/v2/league/primera-division.ics',
-    'Serie A' => 'https://ics.fixtur.es/v2/league/serie-a.ics'
+    'Football' => [
+        'Coupe du Monde' => 'https://ics.fixtur.es/v2/league/fifa-world-cup-2026.ics',
+        'Ligue 1' => 'https://ics.fixtur.es/v2/league/ligue-1.ics',
+        'Champions League' => 'https://ics.fixtur.es/v2/league/champions-league.ics',
+        'Europa League' => 'https://ics.fixtur.es/v2/league/europa-league.ics',
+        'Premier League' => 'https://ics.fixtur.es/v2/league/premier-league.ics',
+        'La Liga' => 'https://ics.fixtur.es/v2/league/primera-division.ics',
+        'Serie A' => 'https://ics.fixtur.es/v2/league/serie-a.ics'
+    ],
+    'Rugby' => [
+        'Six Nations' => 'https://ics.fixtur.es/v2/league/six-nations.ics',
+        'Top 14' => 'https://ics.fixtur.es/v2/league/top-14.ics'
+    ]
 ];
 
 $importedCount = 0;
 
-foreach ($calendars as $competition => $url) {
-    if (php_sapi_name() === 'cli') {
-        echo "Téléchargement de : {$competition} ({$url})...\n";
-    }
+foreach ($calendars as $sportCategory => $list) {
+    $sport = ($sportCategory === 'Rugby') ? 'Rugby' : 'Soccer';
+    foreach ($list as $competition => $url) {
+        if (php_sapi_name() === 'cli') {
+            echo "Téléchargement de [{$sport}] {$competition} ({$url})...\n";
+        }
 
     // Téléchargement sécurisé via cURL
     $ch = curl_init();
@@ -61,12 +93,13 @@ foreach ($calendars as $competition => $url) {
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
     curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 3);
+    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 2);
     curl_setopt($ch, CURLOPT_USERAGENT, 'GentlemanPubBot/1.0');
     $icsContent = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     $curlError = curl_error($ch);
-    curl_close($ch);
+
 
     if ($icsContent === false || $httpCode !== 200) {
         if (php_sapi_name() === 'cli') {
@@ -102,22 +135,19 @@ foreach ($calendars as $competition => $url) {
             continue;
         }
 
-        // Vérification des mots-clés (sauf pour les compétitions majeures où l'on veut diffuser TOUS les matchs)
-        $bypassFilterCompetitions = ['Coupe du Monde', 'Euro', 'Six Nations'];
-        $isBypass = in_array($competition, $bypassFilterCompetitions, true);
-
-        if (!$isBypass) {
-            $hasKeyword = false;
-            foreach ($keywords as $kw) {
-                if (stripos($summary, $kw) !== false) {
-                    $hasKeyword = true;
-                    break;
-                }
-            }
-            if (!$hasKeyword) {
-                continue;
-            }
+    // Filtrage strict : Le match doit obligatoirement inclure au moins UNE équipe majeure/populaire de la liste officiellement configurée (avec limites de mots)
+    $hasKeyword = false;
+    foreach ($keywords as $kw) {
+        $pattern = '/\b' . preg_quote($kw, '/') . '\b/i';
+        if (preg_match($pattern, $summary) === 1) {
+            $hasKeyword = true;
+            break;
         }
+    }
+
+    if (!$hasKeyword) {
+        continue;
+    }
 
         // Extraction de DTSTART
         $matchDate = '';
@@ -164,6 +194,10 @@ foreach ($calendars as $competition => $url) {
             $equipe2 = 'Adversaire';
         }
 
+        // Nettoyage des étiquettes entre crochets (ex: [CL], [EL], [L1], [PL])
+        $equipe1 = trim((string)preg_replace('/\[.*?\]/', '', $equipe1));
+        $equipe2 = trim((string)preg_replace('/\[.*?\]/', '', $equipe2));
+
         // Récupération de l'UID de l'événement iCal pour éviter les doublons absolus
         $apiEventId = null;
         if (preg_match('/^UID:(.*)$/im', $eventBlock, $m)) {
@@ -203,10 +237,14 @@ foreach ($calendars as $competition => $url) {
             $slug = generate_unique_match_slug($pdo, $equipe1, $equipe2, $matchDate);
         }
 
+        // Résolution automatique des logos si disponibles
+        $homeBadge = get_team_logo($equipe1);
+        $awayBadge = get_team_logo($equipe2);
+
         // Insertion ou mise à jour de la date d'un match existant
-        $stmt = $pdo->prepare('INSERT INTO matchs (slug, equipe_1, equipe_2, competition, date_match, sport, api_event_id, statut, is_active) 
-            VALUES (:slug, :e1, :e2, :competition, :date_match, :sport, :api_event_id, \'scheduled\', 1)
-            ON DUPLICATE KEY UPDATE date_match = VALUES(date_match), api_event_id = VALUES(api_event_id)');
+        $stmt = $pdo->prepare('INSERT INTO matchs (slug, equipe_1, equipe_2, competition, date_match, sport, api_event_id, image_path, image_path_away, statut, is_active) 
+            VALUES (:slug, :e1, :e2, :competition, :date_match, :sport, :api_event_id, :img_home, :img_away, \'scheduled\', 1)
+            ON DUPLICATE KEY UPDATE date_match = VALUES(date_match), api_event_id = VALUES(api_event_id), image_path = COALESCE(VALUES(image_path), image_path), image_path_away = COALESCE(VALUES(image_path_away), image_path_away)');
         $stmt->execute([
             ':slug' => $slug,
             ':e1' => $equipe1,
@@ -214,10 +252,13 @@ foreach ($calendars as $competition => $url) {
             ':competition' => $competition,
             ':date_match' => $matchDate,
             ':sport' => $sport,
-            ':api_event_id' => $apiEventId
+            ':api_event_id' => $apiEventId,
+            ':img_home' => !empty($homeBadge) ? $homeBadge : null,
+            ':img_away' => !empty($awayBadge) ? $awayBadge : null
         ]);
         $importedCount++;
     }
+}
 }
 
 // --- DEBUT DE L'IMPORTATION RUGBY VIA THESPORTSDB ---
@@ -242,11 +283,12 @@ foreach ($rugbyLeagues as $competition => $leagueId) {
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
     curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 3);
+    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 2);
     curl_setopt($ch, CURLOPT_USERAGENT, 'GentlemanPubBot/1.0');
     $response = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
+
     
     if ($response === false || $httpCode !== 200) {
         if (php_sapi_name() === 'cli') {

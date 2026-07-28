@@ -40,25 +40,44 @@ $meta_description = e("Réservez votre place au {$siteName} pour voir {$e1} - {$
 
 require __DIR__ . '/includes/header.php';
 
-// JSON-LD Event pour SEO
+// JSON-LD SportsEvent ultra-optimisé SEO Local
 $event = [
     '@context' => 'https://schema.org',
-    '@type' => 'Event',
-    'name' => "{$e1} vs {$e2} au Gentleman Pub",
+    '@type' => 'SportsEvent',
+    'name' => "Diffusion en direct : {$e1} vs {$e2} au {$siteName}",
+    'sport' => $match['sport'] ?? 'Football',
+    'competitor' => [
+        ['@type' => 'SportsTeam', 'name' => $e1],
+        ['@type' => 'SportsTeam', 'name' => $e2]
+    ],
     'startDate' => $isoDate,
+    'eventAttendanceMode' => 'https://schema.org/OfflineEventAttendanceMode',
+    'eventStatus' => 'https://schema.org/EventScheduled',
     'location' => [
         '@type' => 'Place',
-      'name' => $siteName,
+        'name' => $siteName,
         'address' => [
             '@type' => 'PostalAddress',
-        'streetAddress' => config_value('bar_adresse', 'Saint-Michel, Paris 5e'),
+            'streetAddress' => config_value('bar_adresse', '14 Rue Saint Germain'),
             'addressLocality' => 'Paris',
-            'postalCode' => '75005',
+            'postalCode' => '75006',
             'addressCountry' => 'FR'
+        ],
+        'geo' => [
+            '@type' => 'GeoCoordinates',
+            'latitude' => 48.8524,
+            'longitude' => 2.3436
         ]
     ],
-    'description' => "Venez voir {$e1} contre {$e2} au {$siteName}, écrans grands formats et Happy Hour !",
-    'eventStatus' => 'https://schema.org/EventScheduled',
+    'image' => [
+        !empty($match['image_path']) ? $match['image_path'] : '/assets/uploads/hero-bg.jpg'
+    ],
+    'description' => "Regarder le match {$e1} contre {$e2} en direct sur écrans HD au {$siteName} à Paris Saint-Germain / Saint-Michel. Ambiance pub, bières fraîches et Happy Hour.",
+    'organizer' => [
+        '@type' => 'Organization',
+        'name' => $siteName,
+        'url' => 'http://' . ($_SERVER['HTTP_HOST'] ?? 'localhost')
+    ]
 ];
 
 echo "<script type=\"application/ld+json\">" . json_encode($event, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . "</script>";
@@ -121,20 +140,33 @@ echo "<script type=\"application/ld+json\">" . json_encode($event, JSON_UNESCAPE
         <div class="text-2xl font-display text-white mt-4 font-bold tracking-wide"><?php echo e($e2); ?></div>
       </div>
     </div>
-    <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
-      <div class="col-span-2">
-        <p class="text-gray-200">Competition: <?php echo e($match['competition']); ?></p>
-        <p class="mt-4 text-lg">Lieu: <strong><?php echo e($siteName); ?> — <?php echo e(config_value('bar_adresse', 'Saint-Michel, Paris 5e')); ?></strong></p>
-        <p class="mt-4 text-yellow-300 font-semibold">Happy Hour applicable sur certaines boissons — renseignez-vous au bar.</p>
+    <div class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6 items-center border-t border-white/10 pt-6">
+      <div class="col-span-2 space-y-3">
+        <p class="text-gray-300 flex items-center gap-2">
+            <span>📺</span>
+            <span>Diffusion sur <strong><?php echo (int)($match['ecran_nb'] ?? 4); ?> Écrans HD</strong> (Chaîne: <strong><?php echo e($match['chaine_tv'] ?? 'Écrans HD'); ?></strong>)</span>
+        </p>
+        <p class="text-gray-300 flex items-center gap-2">
+            <span>📍</span>
+            <span>Lieu: <strong><?php echo e($siteName); ?> — <?php echo e(config_value('bar_adresse', '14 Rue Saint Germain, 75006 Paris')); ?></strong></span>
+        </p>
+        <p class="text-amber-300 font-semibold text-sm flex items-center gap-2">
+            <span>🍻</span>
+            <span>Happy Hour actif de 17h à 20h sur les bières & cocktails !</span>
+        </p>
       </div>
       <div class="flex flex-col items-center gap-3 w-full">
-        <a href="<?php echo e(config_value('booking_privateaser_url', 'https://www.privateaser.com/lieu/5113-le-gentleman-pub')); ?>" target="_blank" rel="noopener" class="w-full text-center bg-amber-400 text-black px-4 py-2.5 rounded-md font-semibold hover:bg-amber-300 transition-colors">Réserver via Privateaser</a>
-        <a href="<?php echo e(config_value('booking_mistergoodbeer_url', 'https://www.mistergoodbeer.com/bars/gentleman-paris')); ?>" target="_blank" rel="noopener" class="w-full text-center border border-amber-400 text-amber-400 px-4 py-2.5 rounded-md font-semibold hover:bg-amber-400 hover:text-black transition-all">Voir sur MisterGoodBeer</a>
-        <a href="/#carte" class="text-sm text-gray-300 hover:text-amber-300 transition-colors mt-2">Voir la carte & Happy Hour</a>
+        <a href="<?php echo e(config_value('booking_privateaser_url', 'https://www.privateaser.com/lieu/5113-le-gentleman-pub')); ?>" target="_blank" rel="noopener" class="w-full text-center bg-amber-400 text-black px-4 py-3 rounded-xl font-bold uppercase tracking-wider hover:bg-amber-300 transition-all shadow-[0_0_15px_rgba(212,175,55,0.2)]">
+            🎯 Réserver une table
+        </a>
+        <a href="tel:<?php echo preg_replace('/[^0-9+]/', '', config_value('bar_telephone', '0171717171')); ?>" class="w-full text-center border border-amber-400/40 text-amber-300 px-4 py-2.5 rounded-xl font-semibold hover:bg-amber-400/10 transition-all text-xs flex items-center justify-center gap-2">
+            📞 Appeler le bar (<?php echo e(config_value('bar_telephone', '01 71 71 71 71')); ?>)
+        </a>
+        <a href="/#carte" class="text-xs text-gray-400 hover:text-amber-300 transition-colors mt-1">Découvrir la carte des boissons →</a>
       </div>
     </div>
-    <div class="mt-6">
-      <p class="text-sm text-gray-400">Arrivez tôt pour vous assurer une bonne place — places limitées lors des gros matches.</p>
+    <div class="mt-6 text-center border-t border-white/5 pt-4">
+      <p class="text-xs text-gray-400 italic">💡 Conseils : Arrivez au moins 30 minutes avant le coup d'envoi pour avoir une table près des grands écrans.</p>
     </div>
   </article>
 </div>
