@@ -5,16 +5,16 @@ header('X-Content-Type-Options: nosniff');
 
 require_once __DIR__ . '/../config/db.php';
 
-// Validation du token API (stocké en config ou variable env)
-$apiKey = getenv('API_KEY') ?: config_value('api_key', 'default_secret_key');
+// Validation du token API (stocké en config ou variable env), autoriser en CLI
+if (php_sapi_name() !== 'cli') {
+    $apiKey = getenv('API_KEY') ?: config_value('api_key', 'default_secret_key');
+    $providedKey = $_SERVER['HTTP_X_API_KEY'] ?? $_GET['key'] ?? null;
 
-// Récupère le token fourni
-$providedKey = $_SERVER['HTTP_X_API_KEY'] ?? null;
-
-if (!$providedKey || $providedKey !== $apiKey) {
-    http_response_code(403);
-    echo json_encode(['success' => false, 'message' => 'Unauthorized']);
-    exit;
+    if (!$providedKey || $providedKey !== $apiKey) {
+        http_response_code(403);
+        echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+        exit;
+    }
 }
 
 // Parse JSON payload
