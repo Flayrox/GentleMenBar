@@ -640,16 +640,18 @@ $heroBgImage = config_value('hero_bg_image', '/assets/uploads/hero-bg.jpg');
                 <span class="rounded-full bg-white/5 border border-white/10 px-2 py-0.5 text-[10px] text-gray-300">⚽ Serie A</span>
                 <span class="rounded-full bg-white/5 border border-white/10 px-2 py-0.5 text-[10px] text-gray-300">🏉 Top 14</span>
                 <span class="rounded-full bg-white/5 border border-white/10 px-2 py-0.5 text-[10px] text-gray-300">🏉 Six Nations</span>
+                <span class="rounded-full bg-white/5 border border-white/10 px-2 py-0.5 text-[10px] text-gray-300">🏈 NFL</span>
+                <span class="rounded-full bg-white/5 border border-white/10 px-2 py-0.5 text-[10px] text-gray-300">🏀 NBA</span>
               </div>
               
               <form method="post" class="border-t border-white/10 pt-4">
                 <input type="hidden" name="csrf_token" value="<?php echo e($_SESSION['csrf_token']); ?>">
                 <input type="hidden" name="action" value="save_auto_feature_config">
                 
-                <span class="text-[10px] text-gray-400 uppercase tracking-wider block mb-3 font-semibold font-body">⭐️ Mettre automatiquement à l'affiche :</span>
+                <span class="text-[10px] text-gray-400 uppercase tracking-wider block mb-3 font-semibold font-body">⭐️ Championnats autorisés pour l'affichage :</span>
                 <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   <?php
-                  $autoFeatJson = config_value('auto_feature_competitions', '["Coupe du Monde"]');
+                  $autoFeatJson = config_value('auto_feature_competitions', '["Coupe du Monde", "Ligue 1", "Champions League", "Premier League", "NFL Regular Season", "Super Bowl", "NBA"]');
                   $autoFeatList = json_decode($autoFeatJson, true) ?: [];
                   $allCompetitions = [
                       'Coupe du Monde' => '⚽ Coupe du Monde',
@@ -660,7 +662,10 @@ $heroBgImage = config_value('hero_bg_image', '/assets/uploads/hero-bg.jpg');
                       'La Liga' => '⚽ La Liga',
                       'Serie A' => '⚽ Serie A',
                       'Top 14' => '🏉 Top 14',
-                      'Six Nations' => '🏉 Six Nations'
+                      'Six Nations' => '🏉 Six Nations',
+                      'NFL Regular Season' => '🏈 NFL Regular',
+                      'Super Bowl' => '🏈 Super Bowl',
+                      'NBA' => '🏀 NBA'
                   ];
                   foreach ($allCompetitions as $key => $label):
                       $checked = in_array($key, $autoFeatList, true) ? 'checked' : '';

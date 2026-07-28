@@ -278,6 +278,22 @@ if ($featuredMatch) {
 <?php
 $carouselJson = config_value('carousel_images', '[]');
 $carouselImages = json_decode($carouselJson, true) ?: [];
+
+// S'il n'y a pas d'images manuellement définies, scanne automatiquement le dossier assets/uploads
+if (empty($carouselImages)) {
+    $uploadDir = __DIR__ . '/assets/uploads';
+    if (is_dir($uploadDir)) {
+        $files = scandir($uploadDir);
+        foreach ($files as $f) {
+            if ($f === '.' || $f === '..' || $f === '.gitkeep' || $f === 'default-match.svg') continue;
+            $ext = strtolower(pathinfo($f, PATHINFO_EXTENSION));
+            if (in_array($ext, ['jpg', 'jpeg', 'png', 'webp'], true)) {
+                $carouselImages[] = '/assets/uploads/' . $f;
+            }
+        }
+    }
+}
+
 if (!empty($carouselImages)):
 ?>
 <section class="relative py-12 border-t border-primary-container/10 overflow-hidden bg-surface/30">

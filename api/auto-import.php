@@ -85,11 +85,22 @@ $calendars = [
     ]
 ];
 
+$autoFeatJson = config_value('auto_feature_competitions', '["Coupe du Monde", "Ligue 1", "Champions League", "Premier League", "NFL Regular Season", "Super Bowl", "NBA"]');
+$enabledCompetitions = json_decode($autoFeatJson, true) ?: [];
+
 $importedCount = 0;
 
 foreach ($calendars as $sportCategory => $list) {
     $sport = $sportCategory;
     foreach ($list as $competition => $url) {
+        // Si le championnat est décoché dans l'Admin, on passe l'import de cette ligue
+        if (!empty($enabledCompetitions) && !in_array($competition, $enabledCompetitions, true)) {
+            if (php_sapi_name() === 'cli') {
+                echo " - Ignoré (championnat désactivé dans l'Admin) : {$competition}\n";
+            }
+            continue;
+        }
+
         if (php_sapi_name() === 'cli') {
             echo "Téléchargement de [{$sport}] {$competition} ({$url})...\n";
         }
